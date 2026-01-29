@@ -80,7 +80,8 @@
         <div class="card">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <img src="claw.png" style="width:50px;">
-                <div style="flex-grow:1; margin-right:10px;"><b>المخلب الفولاذي</b><br><small>توفير طاقة 30%</small></div>
+               <img src="wingedlionpng.png">
+ <div style="flex-grow:1; margin-right:10px;"><b>المخلب الفولاذي</b><br><small>توفير طاقة 30%</small></div>
                 <span style="color:var(--gold);">$800</span>
             </div>
             <button class="btn-gold" style="margin-top:10px;" onclick="buy('CLAW', 800)">شراء</button>
