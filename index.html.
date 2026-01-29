@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>The Last Million | العرين الأسطوري</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap');
+        :root { --gold: #d4af37; --up: #00ff88; --burn: #ff4444; --ton: #0098ea; --vip: #ff00ea; }
+        
+        body { 
+            margin: 0; 
+            background: url('https://img.freepik.com/free-photo/magical-forest-landscape-with-sun-rays_23-2151590214.jpg') no-repeat center center fixed; 
+            background-size: cover;
+            color: white; 
+            font-family: 'Cairo', sans-serif; 
+            overflow: hidden; 
+        }
+
+        .header { background: rgba(0,0,0,0.8); backdrop-filter: blur(5px); padding: 12px; border-bottom: 2px solid var(--gold); display: flex; justify-content: space-around; position: sticky; top: 0; z-index: 1000; font-size: 11px; }
+        .stat b { color: var(--gold); display: block; }
+
+        .page { display: none; height: 100vh; padding: 15px; box-sizing: border-box; overflow-y: auto; padding-bottom: 120px; }
+        .page.active { display: block; }
+        
+        .card { 
+            background: rgba(0, 0, 0, 0.6); 
+            backdrop-filter: blur(10px); 
+            border: 1px solid rgba(212, 175, 55, 0.3); 
+            border-radius: 20px; 
+            padding: 15px; 
+            margin-bottom: 15px; 
+            text-shadow: 1px 1px 2px #000;
+        }
+
+        .btn-gold { background: var(--gold); color: black; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+        .btn-vip { background: var(--vip); color: white; border: none; padding: 12px; border-radius: 10px; font-weight: bold; width: 100%; cursor: pointer; }
+
+        .lion-circle { 
+            width: 200px; height: 200px; margin: 15px auto; border-radius: 50%; 
+            border: 4px solid var(--gold); box-shadow: 0 0 30px var(--gold); 
+            overflow: hidden; cursor: pointer; transition: 0.1s;
+        }
+        .lion-circle:active { transform: scale(0.92); }
+        .lion-circle img { width: 100%; height: 100%; object-fit: cover; }
+
+        .nav { position: fixed; bottom: 0; width: 100%; background: rgba(0,0,0,0.9); display: flex; border-top: 1px solid var(--gold); padding: 10px 0; z-index: 1000; }
+        .nav-item { flex: 1; text-align: center; color: #888; font-size: 10px; cursor: pointer; }
+        .nav-item.active { color: var(--gold); font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="stat">💰 <b>$LAST</b> <span id="bal">0.0000</span></div>
+        <div class="stat">⚡ <b>طاقة</b> <span id="nrg">100</span>%</div>
+    </div>
+
+    <div id="p-throne" class="page active">
+        <div class="card" style="text-align:center;">
+            <p style="margin:0; font-size:10px;">المعروض المتبقي</p>
+            <h2 id="supply-left" style="color:var(--gold); margin:5px 0;">1,000,000.0000</h2>
+        </div>
+        <div class="lion-circle" onclick="tap(event)">
+            <img src="winged-lion.png">
+        </div>
+        <div style="text-align:center; font-size:12px; color:var(--gold);">رتبة: <span id="rank">شبل ملكي</span></div>
+    </div>
+
+    <div id="p-store" class="page">
+        <h3 style="color:var(--gold); text-align:center;">مخزن الأسلحة 🛒</h3>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <img src="fang.png" style="width:50px;">
+                <div style="flex-grow:1; margin-right:10px;"><b>الناب الذهبي</b><br><small>قوة نقر +50%</small></div>
+                <span style="color:var(--gold);">$1,200</span>
+            </div>
+            <button class="btn-gold" style="margin-top:10px;" onclick="buy('FANG', 1200)">شراء</button>
+        </div>
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <img src="claw.png" style="width:50px;">
+                <div style="flex-grow:1; margin-right:10px;"><b>المخلب الفولاذي</b><br><small>توفير طاقة 30%</small></div>
+                <span style="color:var(--gold);">$800</span>
+            </div>
+            <button class="btn-gold" style="margin-top:10px;" onclick="buy('CLAW', 800)">شراء</button>
+        </div>
+        <div class="card" style="border-color:var(--vip);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <b>الأسد الملك VIP</b>
+                <span style="color:#f7a01b;">⭐️ 500</span>
+            </div>
+            <button class="btn-vip" style="margin-top:10px;" onclick="alert('سيتم تفعيل الدفع بالنجوم في البوت')">شراء بالنجوم ⭐️</button>
+        </div>
+    </div>
+
+    <div id="p-trade" class="page">
+        <h3 style="color:var(--gold); text-align:center;">البورصة الملكية 📊</h3>
+        <div class="card" style="height:300px; padding:0; overflow:hidden;">
+            <iframe src="https://s.tradingview.com/widgetembed/?symbol=BINANCE%3ABTCUSDT&interval=D&theme=dark" style="width:100%; height:100%; border:none;"></iframe>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-item active" onclick="nav('p-throne')">🏛️<br>العرش</div>
+        <div class="nav-item" onclick="nav('p-store')">🛒<br>المتجر</div>
+        <div class="nav-item" onclick="nav('p-trade')">📈<br>البورصة</div>
+    </nav>
+
+    <script>
+        let bal=0, nrg=100, supply=1000000;
+        function tap(e) {
+            if(nrg > 0) {
+                bal += 0.0001; supply -= 0.0001; nrg -= 0.1;
+                update(); showFX(e.pageX, e.pageY, "+0.0001");
+            }
+        }
+        function update() {
+            document.getElementById('bal').innerText = bal.toFixed(4);
+            document.getElementById('nrg').innerText = nrg.toFixed(0);
+            document.getElementById('supply-left').innerText = supply.toLocaleString(undefined,{minimumFractionDigits:4});
+        }
+        function nav(id) {
+            document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i=>i.classList.remove('active'));
+            event.currentTarget.classList.add('active');
+        }
+        function showFX(x,y,t) {
+            let d = document.createElement('div'); d.innerText = t;
+            d.style.position='fixed'; d.style.left=x+'px'; d.style.top=y+'px'; d.style.color='var(--gold)';
+            document.body.appendChild(d);
+            d.animate([{opacity:1,transform:'translateY(0)'},{opacity:0,transform:'translateY(-100px)'}],800).onfinish=()=>d.remove();
+        }
+    </script>
+</body>
+</html>
