@@ -1,5 +1,23 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    // تهيئة البوت وتوسيع الشاشة لتملأ الهاتف
+    const tele = window.Telegram.WebApp;
+    tele.expand(); // لجعل التطبيق يملأ الشاشة فور الفتح
+    tele.ready();
+
+    // تغيير لون شريط الحالة ليناسب فخامة الغابة
+    tele.setHeaderColor('#000000'); 
+    tele.setBackgroundColor('#000000');
+
+    // إظهار زر الإغلاق والتفاعل مع المستخدم
+    const user = tele.initDataUnsafe?.user;
+    if (user) {
+        console.log("Welcome, Majesty: " + user.first_name);
+    }
+</script>
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
