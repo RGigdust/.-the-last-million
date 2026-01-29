@@ -6,64 +6,122 @@
     <title>The Last Million | العرين الأسطوري</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        :root { --gold: #d4af37; --up: #00ff88; --burn: #ff4444; }
-        body { margin: 0; background: #000; color: white; font-family: 'Arial', sans-serif; overflow: hidden; }
+        :root { --gold: #d4af37; --bg: #0b0b0b; --card: rgba(255,255,255,0.08); }
+        body { margin: 0; background: var(--bg); color: white; font-family: 'Segoe UI', sans-serif; user-select: none; }
+        
+        /* الخلفية الملكية */
         .forest-bg {
             position: fixed; top: 0; width: 100%; height: 100%;
-            background: url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80') center/cover;
-            filter: brightness(0.3) blur(2px); z-index: -1;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?auto=format&fit=crop&q=80');
+            background-size: cover; z-index: -1;
         }
-        .header { display: flex; justify-content: space-around; padding: 15px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); }
-        .stat { text-align: center; }
-        .stat b { display: block; color: var(--gold); font-size: 18px; }
+
+        .page { display: none; padding: 20px; padding-bottom: 100px; animation: fadeIn 0.3s; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* البطاقات والعناصر */
+        .card { background: var(--card); border: 1px solid rgba(212,175,55,0.3); border-radius: 20px; padding: 15px; margin-bottom: 15px; text-align: center; }
+        .gold-text { color: var(--gold); font-weight: bold; }
+        
+        /* دائرة الأسد */
         .lion-circle {
-            width: 250px; height: 250px; margin: 40px auto;
+            width: 220px; height: 220px; margin: 30px auto;
             border-radius: 50%; border: 4px solid var(--gold);
-            box-shadow: 0 0 30px var(--gold); overflow: hidden;
-            cursor: pointer; transition: transform 0.1s;
+            box-shadow: 0 0 25px var(--gold); overflow: hidden;
+            transition: transform 0.1s; cursor: pointer;
         }
-        .lion-circle:active { transform: scale(0.95); }
+        .lion-circle:active { transform: scale(0.92); }
         .lion-circle img { width: 100%; height: 100%; object-fit: cover; }
-        .card { background: rgba(255,255,255,0.15); margin: 15px; padding: 15px; border-radius: 15px; border: 1px solid rgba(212,175,55,0.3); }
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; justify-content: space-around; background: rgba(0,0,0,0.9); padding: 15px 0; }
-        .nav-item { color: #888; text-decoration: none; font-size: 12px; text-align: center; }
-        .nav-item.active { color: var(--gold); }
+
+        /* التنقل السفلي - الـ 5 خانات */
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: rgba(0,0,0,0.95); border-top: 1px solid var(--gold); padding: 10px 0; z-index: 100; }
+        .nav-item { flex: 1; text-align: center; color: #777; font-size: 11px; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--gold); transform: translateY(-5px); }
+        .nav-item i { font-size: 20px; display: block; margin-bottom: 4px; }
+
+        .btn-buy { background: var(--gold); border: none; color: black; padding: 8px 20px; border-radius: 10px; font-weight: bold; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="forest-bg"></div>
-    
-    <div class="header">
-        <div class="stat"><b>0.0009</b> LAST$</div>
-        <div class="stat"><b>99%</b> طاقة ⚡</div>
+
+    <div id="throne" class="page active">
+        <div class="card">
+            <p style="margin:0; font-size:12px;">رصيد LAST$</p>
+            <h1 id="balance" class="gold-text">0.0000</h1>
+        </div>
+        <div class="lion-circle" onclick="mine()">
+            <img src="wingedlionpng.png" alt="Lion">
+        </div>
+        <div class="card">
+            <p>المعروض المتبقي: <span id="supply" class="gold-text">1,000,000.0000</span></p>
+        </div>
     </div>
 
-    <div id="p-throne">
-        <div class="card" style="text-align:center;">
-            <p style="margin:0; font-size:12px;">المعروض المتبقي</p>
-            <h2 id="supply">999,999.9991</h2>
+    <div id="store" class="page">
+        <h2 class="gold-text">مخزن الأسلحة</h2>
+        <div class="card">
+            <img src="1769717089776.png" style="width:60px; border-radius:10px;">
+            <h3>الناب الذهبي</h3>
+            <p>قوة النقر +10</p>
+            <button class="btn-buy">شراء بـ 500$</button>
         </div>
-        <div class="lion-circle" onclick="tap()">
-            <img src="wingedlionpng.png" id="lion-img">
-        </div>
-        <p style="text-align:center; color:var(--gold);">رتبة: شبل ملكي</p>
     </div>
 
-    <div class="nav">
-        <a href="#" class="nav-item active">🏛️<br>العرش</a>
-        <a href="#" class="nav-item">🛒<br>المتجر</a>
-        <a href="#" class="nav-item">📈<br>البورصة</a>
+    <div id="friends" class="page">
+        <h2 class="gold-text">عرين الأصدقاء</h2>
+        <div class="card">
+            <p>ادعُ 5 أشبال واحصل على 1000 عملة!</p>
+            <button class="btn-buy">نسخ رابط الدعوة</button>
+        </div>
     </div>
+
+    <div id="tasks" class="page">
+        <h2 class="gold-text">المهام الملكية</h2>
+        <div class="card">
+            <p>تابع قناتنا على تليجرام</p>
+            <button class="btn-buy">+500 عملة</button>
+        </div>
+    </div>
+
+    <div id="market" class="page">
+        <h2 class="gold-text">البورصة الملكية</h2>
+        <div class="card">
+            <p>سعر الـ LAST$ الحالي</p>
+            <h2 class="gold-text">$0.025</h2>
+        </div>
+    </div>
+
+    <nav class="nav">
+        <div class="nav-item active" onclick="showPage('throne', this)"><i>🏛️</i>العرش</div>
+        <div class="nav-item" onclick="showPage('store', this)"><i>🛒</i>المتجر</div>
+        <div class="nav-item" onclick="showPage('friends', this)"><i>🐾</i>الأشبال</div>
+        <div class="nav-item" onclick="showPage('tasks', this)"><i>📜</i>المهام</div>
+        <div class="nav-item" onclick="showPage('market', this)"><i>📈</i>البورصة</div>
+    </nav>
 
     <script>
         const tele = window.Telegram.WebApp;
         tele.expand();
 
-        function tap() {
-            let s = document.getElementById('supply');
-            let val = parseFloat(s.innerText.replace(/,/g, ''));
-            s.innerText = (val - 0.0001).toFixed(4);
+        let balance = 0;
+        let supply = 1000000;
+
+        function mine() {
+            balance += 0.0001;
+            supply -= 0.0001;
+            document.getElementById('balance').innerText = balance.toFixed(4);
+            document.getElementById('supply').innerText = supply.toLocaleString(undefined, {minimumFractionDigits: 4});
             tele.HapticFeedback.impactOccurred('medium');
+        }
+
+        function showPage(pageId, element) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            element.classList.add('active');
         }
     </script>
 </body>
