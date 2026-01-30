@@ -9,85 +9,115 @@
         :root { --gold: #d4af37; --bg: #0b0b0b; }
         body { margin: 0; background: var(--bg); color: white; font-family: 'Arial', sans-serif; overflow: hidden; }
         
-        /* شاشة الافتتاحية */
+        /* شاشة الافتتاحية والقصة */
         #intro { position: fixed; top: 0; width: 100%; height: 100%; background: black; z-index: 1000; display: flex; justify-content: center; align-items: center; text-align: center; }
-        .story { color: var(--gold); font-style: italic; animation: fade 4s forwards; padding: 20px; }
+        .story { color: var(--gold); font-style: italic; animation: fade 4s forwards; padding: 20px; font-size: 1.2rem; }
         @keyframes fade { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; visibility: hidden; } }
 
+        /* الصفحات */
         .page { display: none; padding: 20px; height: 80vh; overflow-y: auto; padding-bottom: 100px; }
         .page.active { display: block; }
         .card { background: rgba(255,255,255,0.05); border: 1px solid var(--gold); border-radius: 15px; padding: 15px; margin-bottom: 15px; }
         
-        /* دائرة الأسد */
-        .lion-main { width: 220px; height: 220px; margin: 20px auto; border-radius: 50%; border: 3px solid var(--gold); box-shadow: 0 0 20px var(--gold); overflow: hidden; }
+        /* دائرة الأسد الملكية */
+        .lion-main { width: 220px; height: 220px; margin: 20px auto; border-radius: 50%; border: 3px solid var(--gold); box-shadow: 0 0 25px var(--gold); overflow: hidden; transition: transform 0.1s; cursor: pointer; }
+        .lion-main:active { transform: scale(0.95); }
         .lion-main img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* شريط التنقل */
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--gold); padding: 10px 0; }
-        .nav-item { flex: 1; text-align: center; font-size: 10px; color: #666; cursor: pointer; }
-        .nav-item.active { color: var(--gold); }
+        /* شريط التنقل السفلي (5 خانات) */
+        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: #000; border-top: 1px solid var(--gold); padding: 10px 0; z-index: 100; }
+        .nav-item { flex: 1; text-align: center; font-size: 10px; color: #666; cursor: pointer; transition: 0.3s; }
+        .nav-item.active { color: var(--gold); font-weight: bold; }
+        .nav-item i { font-size: 20px; display: block; margin-bottom: 3px; }
         
-        .gold-btn { background: var(--gold); border: none; color: black; padding: 8px 15px; border-radius: 8px; font-weight: bold; margin: 5px; cursor: pointer; }
-        #comments-box { background: rgba(0,0,0,0.5); height: 100px; overflow-y: auto; padding: 10px; border-radius: 10px; margin: 10px 0; font-size: 12px; }
+        /* الأزرار والمدخلات */
+        .gold-btn { background: var(--gold); border: none; color: black; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        #comments-box { background: rgba(0,0,0,0.5); height: 120px; overflow-y: auto; padding: 10px; border-radius: 10px; margin: 10px 0; font-size: 12px; text-align: right; }
     </style>
 </head>
 <body>
 
-    <div id="intro"><div class="story">"المليون الأخير.. موسم الصيد يبدأ الآن"</div></div>
+    <div id="intro">
+        <div class="story">"المليون الأخير.. في زمن الندرة، الصيد يبدأ الآن"</div>
+    </div>
 
     <div id="p-throne" class="page active">
         <div class="card" style="text-align:center;">
-            <p>رصيدك من السيادة</p>
-            <h2 id="balance" style="color:var(--gold);">0.0000</h2>
+            <p style="margin:0; font-size: 12px;">نقاط السيادة (LAST$)</p>
+            <h1 id="balance" style="color:var(--gold); margin: 5px;">0.0000</h1>
         </div>
-        <div class="lion-main" onclick="mine()"><img src="wingedlionpng.png"></div>
+        <div class="lion-main" onclick="mine()">
+            <img src="wingedlionpng.png" alt="Lion">
+        </div>
+        <div style="text-align:center; color:var(--gold); font-weight:bold;">الرتبة: شبل العرين</div>
     </div>
 
     <div id="p-store" class="page">
-        <h3 style="color:var(--gold);">🛒 مخزن الأسلحة</h3>
+        <h3 style="color:var(--gold);">🛒 مخزن الأسلحة والترقيات</h3>
         <div class="card">
             <h4>الناب الذهبي</h4>
+            <p style="font-size:12px;">يزيد قوة النقر بنسبة 20%</p>
             <button class="gold-btn">تطوير (500$)</button>
+        </div>
+        <div class="card">
+            <h4>درع السيادة</h4>
+            <p style="font-size:12px;">يحمي نقاطك من موسم الجفاف</p>
+            <button class="gold-btn">شراء (1000$)</button>
         </div>
     </div>
 
     <div id="p-academy" class="page">
         <h3 style="color:var(--gold);">🎓 الأكاديمية الملكية</h3>
         <div class="card">
-            <p><b>الدرس الأول:</b> ندرة العملة هي سر قوتك. كلما زاد الحرق، زاد سعر المليون الأخير.</p>
+            <h4>الدرس الأول: قانون الندرة</h4>
+            <p style="font-size:13px; line-height:1.6;">الـ LAST$ ليس مجرد عملة، بل هو دليل سيادتك. تذكر دائماً: كلما زاد الحرق، ارتفع شأن العرين في البورصة العالمية.</p>
+        </div>
+        <div class="card">
+            <h4>أخبار العالم</h4>
+            <marquee style="color:var(--gold); font-size:12px;">تحذيرات من نقص العملات المشفرة.. العرين يستقطب المزيد من الأشبال.. موسم الصيد الكبرى يقترب..</marquee>
         </div>
     </div>
 
     <div id="p-social" class="page">
         <h3 style="color:var(--gold);">💬 الديوانية الملكية</h3>
         <div class="card">
+            <p>اترك بصمتك للأشبال القادمين:</p>
             <div id="comments-box">
-                <p><b style="color:var(--gold);">الشبل صقر:</b> العرين سيغير قواعد اللعبة!</p>
+                <p><b style="color:var(--gold);">الملك سيف:</b> العرين سيغير قواعد اللعبة!</p>
+                <p><b style="color:var(--gold);">الشبل صقر:</b> بدأت الصيد اليوم، العملة نادرة جداً!</p>
             </div>
-            <input type="text" id="comm-input" placeholder="اكتب بصمتك..." style="width:60%; padding:5px; background:#000; color:white; border:1px solid var(--gold);">
-            <button class="gold-btn" onclick="sendComm()">إرسال</button>
+            <div style="display:flex; gap:5px;">
+                <input type="text" id="comm-input" placeholder="اكتب رسالتك..." style="flex:1; padding:8px; background:#000; color:white; border:1px solid var(--gold); border-radius:5px;">
+                <button class="gold-btn" onclick="sendComm()">إرسال</button>
+            </div>
         </div>
     </div>
 
     <div id="p-market" class="page">
-        <h3 style="color:var(--gold);">📈 بورصة العرين</h3>
+        <h3 style="color:var(--gold);">📈 بورصة السيادة</h3>
         <div class="card">
-            <p>السعر العالمي: <span style="color:#00ff88;">$0.0250</span></p>
+            <p>سعر الـ LAST$ الحالي:</p>
+            <h2 style="color:#00ff88;">$0.0250 <small style="font-size:12px; color:white;">(+5.2%)</small></h2>
+        </div>
+        <div class="card" style="font-size:12px; border-color: #ff4444;">
+            <p>معدل الحرق العالمي: <span style="color:#ff4444;">🔥 12,400 LAST$</span></p>
         </div>
     </div>
 
     <nav class="nav">
-        <div class="nav-item active" onclick="tab('p-throne', this)">🏛️<br>العرش</div>
-        <div class="nav-item" onclick="tab('p-store', this)">🛒<br>المتجر</div>
-        <div class="nav-item" onclick="tab('p-academy', this)">🎓<br>الأكاديمية</div>
-        <div class="nav-item" onclick="tab('p-social', this)">💬<br>التواصل</div>
-        <div class="nav-item" onclick="tab('p-market', this)">📈<br>البورصة</div>
+        <div class="nav-item active" onclick="tab('p-throne', this)"><i>🏛️</i>العرش</div>
+        <div class="nav-item" onclick="tab('p-store', this)"><i>🛒</i>المتجر</div>
+        <div class="nav-item" onclick="tab('p-academy', this)"><i>🎓</i>الأكاديمية</div>
+        <div class="nav-item" onclick="tab('p-social', this)"><i>💬</i>التواصل</div>
+        <div class="nav-item" onclick="tab('p-market', this)"><i>📈</i>البورصة</div>
     </nav>
 
     <script>
         const tele = window.Telegram.WebApp;
         tele.expand();
-        setTimeout(() => document.getElementById('intro').style.display='none', 4000);
+        
+        // إخفاء الافتتاحية
+        setTimeout(() => document.getElementById('intro').style.display='none', 4500);
 
         let bal = 0;
         function mine() {
@@ -101,6 +131,7 @@
             document.getElementById(id).classList.add('active');
             document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
             el.classList.add('active');
+            tele.HapticFeedback.impactOccurred('light');
         }
 
         function sendComm() {
@@ -110,6 +141,7 @@
                 box.innerHTML += `<p><b style="color:var(--gold);">أنت:</b> ${inp.value}</p>`;
                 inp.value = "";
                 box.scrollTop = box.scrollHeight;
+                tele.HapticFeedback.notificationOccurred('success');
             }
         }
     </script>
