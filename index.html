@@ -1,68 +1,118 @@
-<style>
-    /* الغابة أصبحت عالم كامل */
-    #world {
-        width: 3000px; height: 3000px;
-        background-image: url('https://img.freepik.com/free-vector/forest-landscape-with-trees-rocks-night_107791-16322.jpg'); /* مثال لغابة داكنة */
-        background-size: 800px;
-        position: absolute;
-        transition: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
-    }
-
-    #player-container {
-        position: fixed;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 100;
-    }
-
-    .lion-sprite {
-        width: 100px;
-        filter: drop-shadow(0 0 15px gold);
-        transition: 0.3s;
-    }
-
-    /* تأثيرات الأناقة */
-    .glow-coin {
-        position: absolute;
-        width: 25px; height: 25px;
-        background: radial-gradient(circle, gold, #d4af37);
-        border-radius: 50%;
-        box-shadow: 0 0 20px gold;
-    }
-</style>
-
-<div id="game-container" style="width: 100vw; height: 100vh; overflow: hidden; position: relative;">
-    <div id="world">
-        <div class="glow-coin" style="top: 400px; left: 600px;"></div>
-        <div class="glow-coin" style="top: 1200px; left: 300px;"></div>
-        <div class="glow-coin" style="top: 800px; left: 1500px;"></div>
-    </div>
-
-    <div id="player-container">
-        <img src="wingedlionpng.png" class="lion-sprite" id="lion-player">
-    </div>
-</div>
-
-<script>
-    const world = document.getElementById('world');
-    const lion = document.getElementById('lion-player');
-
-    document.getElementById('game-container').addEventListener('click', (e) => {
-        // حساب الحركة "عكس" اتجاه اللمس عشان العالم هو اللي يتحرك
-        const moveX = (window.innerWidth / 2) - e.clientX;
-        const moveY = (window.innerHeight / 2) - e.clientY;
-
-        // تحريك العالم (الغابة)
-        const currentTransform = new WebKitCSSMatrix(window.getComputedStyle(world).transform);
-        world.style.transform = `translate(${currentTransform.m41 + moveX}px, ${currentTransform.m42 + moveY}px)`;
-
-        // لف وجه الأسد
-        if (moveX < 0) lion.style.transform = "scaleX(1)";
-        else lion.style.transform = "scaleX(-1)";
-
-        // اهتزاز "بريميوم"
-        if (window.Telegram?.WebApp) {
-            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>The Last Million - Forest</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #050a05; font-family: 'Arial', sans-serif; color: white; }
+        
+        /* عالم الغابة */
+        #game-stage {
+            width: 100vw; height: 100vh;
+            position: relative; overflow: hidden;
+            background: radial-gradient(circle, #1a2a1a 0%, #050a05 100%);
         }
-    });
-</script>
+
+        #world {
+            position: absolute;
+            width: 3000px; height: 3000px;
+            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png'); /* نسيج للأرضية */
+            top: -1000px; left: -1000px;
+            transition: transform 0.6s cubic-bezier(0.15, 0.88, 0.3, 1);
+            will-change: transform;
+        }
+
+        /* الأسد الثابت في المركز */
+        #player-fixed {
+            position: fixed;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        .lion-img { width: 120px; filter: drop-shadow(0 0 15px gold); transition: 0.2s; }
+
+        /* العملات الذهبية في الغابة */
+        .coin {
+            position: absolute;
+            width: 30px; height: 30px;
+            background: gold; border-radius: 50%;
+            box-shadow: 0 0 20px gold;
+            display: flex; align-items: center; justify-content: center;
+            color: black; font-weight: bold; font-size: 10px;
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
+
+        /* واجهة المستخدم (UI) */
+        .ui-top { position: fixed; top: 20px; width: 100%; text-align: center; z-index: 200; pointer-events: none; }
+        .balance-box { background: rgba(0,0,0,0.8); padding: 10px 30px; border: 1px solid gold; border-radius: 50px; display: inline-block; }
+        .balance-box b { color: gold; font-size: 24px; }
+    </style>
+</head>
+<body>
+
+    <div class="ui-top">
+        <div class="balance-box">رصيد السيادة: <b id="bal">0.000</b> $LAST</div>
+    </div>
+
+    <div id="game-stage" onclick="moveWorld(event)">
+        <div id="world">
+            <div class="coin" style="top: 1200px; left: 1400px;">$</div>
+            <div class="coin" style="top: 1500px; left: 1100px;">$</div>
+            <div class="coin" style="top: 900px; left: 1600px;">$</div>
+            <div class="coin" style="top: 1700px; left: 1500px;">$</div>
+        </div>
+    </div>
+
+    <div id="player-fixed">
+        <img src="wingedlionpng.png" class="lion-img" id="lion-sprite" onerror="this.src='https://cdn-icons-png.flaticon.com/512/616/616412.png'">
+    </div>
+
+    <script>
+        let balance = 0;
+        let worldX = -1000;
+        let worldY = -1000;
+        const world = document.getElementById('world');
+        const lion = document.getElementById('lion-sprite');
+
+        function moveWorld(e) {
+            // حساب المسافة بين مركز الشاشة ومكان اللمس
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            
+            const diffX = centerX - e.clientX;
+            const diffY = centerY - e.clientY;
+
+            // تحديث مكان العالم
+            worldX += diffX;
+            worldY += diffY;
+
+            // تطبيق الحركة (الكاميرا تلحق اللمس)
+            world.style.transform = `translate(${worldX}px, ${worldY}px)`;
+
+            // لف وجه الأسد حسب الاتجاه
+            if (diffX < 0) lion.style.transform = "scaleX(1)";
+            else lion.style.transform = "scaleX(-1)";
+
+            // تأثير الضغطة (Zoom out خفيف للأسد)
+            lion.style.transform += " scale(0.9)";
+            setTimeout(() => {
+                lion.style.transform = lion.style.transform.replace(" scale(0.9)", "");
+            }, 100);
+
+            // زيادة الرصيد (محاكاة الصيد)
+            balance += 0.001;
+            document.getElementById('bal').innerText = balance.toFixed(3);
+
+            // اهتزاز التليجرام
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+        }
+    </script>
+</body>
+</html>
