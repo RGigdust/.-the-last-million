@@ -1,120 +1,120 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million | Royal Rise</title>
+    <title>The Last Million | Grand Empire</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #020502; overflow: hidden; font-family: 'Cairo', sans-serif; }
-        .ui-header { position: fixed; top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; }
-        .glass-box { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); padding: 5px 20px; border-radius: 15px; border: 1px solid gold; color: gold; text-align: center; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); }
-        .rank-text { font-size: 0.7rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
-        .balance-text { font-size: 1.4rem; font-weight: bold; }
+        body { margin: 0; background: #050a05; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        /* واجهة المستخدم الاحترافية */
+        .hud { position: fixed; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
+        .stat-box { background: rgba(0, 0, 0, 0.7); border: 1px solid gold; color: gold; padding: 5px 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); pointer-events: auto; }
+        .gopass-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(45deg, #ff00cc, #3333ff); color: white; padding: 10px 20px; border-radius: 25px; cursor: pointer; border: none; font-weight: bold; z-index: 100; box-shadow: 0 0 15px #ff00cc; }
+        .shop-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 60%; background: rgba(10, 20, 10, 0.95); border: 3px solid gold; border-radius: 20px; display: none; z-index: 2000; padding: 20px; color: white; overflow-y: auto; }
+        .close-btn { color: red; float: left; cursor: pointer; font-weight: bold; }
+        .item-card { border: 1px solid #444; padding: 10px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; border-radius: 10px; background: rgba(255,255,255,0.05); }
     </style>
 </head>
 <body>
 
-    <div class="ui-header">
-        <div class="glass-box">
-            <div id="rank-label" class="rank-text">شبل ناشئ</div>
-            <div class="balance-text"><span id="score-display">0.000</span> <small style="font-size: 10px;">$LAST</small></div>
+    <div class="hud">
+        <div class="stat-box">💰 الرصيد: <span id="balance">0.00</span> $LAST</div>
+        <div class="stat-box">🏰 الجيش: <span id="army-size">1</span> محارب</div>
+    </div>
+
+    <button class="gopass-btn" onclick="toggleShop()">🛒 المتجر و GoPass</button>
+
+    <div id="shop" class="shop-panel">
+        <span class="close-btn" onclick="toggleShop()">✖ إغلاق</span>
+        <h2>🏛️ متجر العرين و GoPass</h2>
+        <div class="item-card">
+            <span>🛡️ درع ذهبي (NFT) - حماية +50</span>
+            <button onclick="buyItem(100)">شراء (100 $LAST)</button>
+        </div>
+        <div class="item-card" style="background: linear-gradient(90deg, #4b0082, #000);">
+            <span>💎 ممر الملوك (GoPass) - جوايز مضاعفة</span>
+            <button onclick="buyItem(500)">تفعيل (500 $LAST)</button>
         </div>
     </div>
 
     <div id="game-container"></div>
 
     <script>
+        let balance = 150.00; 
         const config = {
             type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
-            parent: 'game-container', transparent: true,
+            parent: 'game-container',
             physics: { default: 'arcade' },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player, target, score, aura;
+        let player, target, light, trees;
 
         function preload() {
-            this.load.image('lion', 'wingedlionpng.png');
+            this.load.image('lion', 'https://cdn-icons-png.flaticon.com/512/616/616412.png'); // أيقونة مؤقتة للأسد
             this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/490/490391.png');
-            this.load.image('aura', 'https://cdn-icons-png.flaticon.com/512/8636/8636034.png'); // صورة للهالة
         }
 
         function create() {
-            // استعادة البيانات المحفوظة
-            score = parseFloat(localStorage.getItem('lion_score')) || 0;
-            
-            this.physics.world.setBounds(0, 0, 5000, 5000);
+            this.physics.world.setBounds(0, 0, 4000, 4000);
+            this.lights.enable().setAmbientColor(0x333333);
 
-            // إضافة الأشجار
-            for (let i = 0; i < 80; i++) {
-                this.add.image(Phaser.Math.Between(0, 5000), Phaser.Math.Between(0, 5000), 'tree').setScale(0.3).setAlpha(0.2);
+            // توزيع الغابة
+            for (let i = 0; i < 60; i++) {
+                let x = Phaser.Math.Between(0, 4000);
+                let y = Phaser.Math.Between(0, 4000);
+                let tree = this.add.image(x, y, 'tree').setScale(0.4).setOrigin(0.5, 1).setPipeline('Light2D');
+                tree.setDepth(y);
             }
 
-            // إنشاء الهالة (مخفية في البداية)
-            aura = this.add.image(0, 0, 'aura').setScale(0.5).setAlpha(0).setTint(0xffd700);
+            // منطقة البورصة (المنطقة الذهبية)
+            this.add.circle(2000, 2000, 300, 0xffd700, 0.2).setPipeline('Light2D');
+            this.add.text(2000, 1800, "🏛️ مركز التداول العالمي", { color: '#ffd700', fontSize: '24px' }).setOrigin(0.5);
 
-            // إنشاء اللاعب بحجمه المحفوظ
-            let startScale = 0.2 + (score * 0.005);
-            if (startScale > 0.6) startScale = 0.6; 
+            // اللاعب
+            player = this.physics.add.sprite(2000, 2200, 'lion').setScale(0.2).setPipeline('Light2D');
+            player.setDepth(2200);
 
-            player = this.physics.add.sprite(2500, 2500, 'lion').setScale(startScale);
-            player.setDepth(100);
+            // إضاءة الأسد (كشاف الاستكشاف)
+            light = this.lights.addLight(0, 0, 500).setIntensity(2).setColor(0xffffff);
 
-            this.cameras.main.startFollow(player, true, 0.05, 0.05);
-            updateCameraZoom(this, score);
+            this.cameras.main.startFollow(player, true, 0.08, 0.08);
+            this.cameras.main.setZoom(1);
 
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 250 + (score * 2)); // تزيد السرعة قليلاً مع النمو
+                this.physics.moveToObject(player, target, 250);
             });
         }
 
         function update() {
+            light.x = player.x;
+            light.y = player.y;
+            player.setDepth(player.y);
+
             if (target) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
                 if (dist < 10) { player.body.reset(target.x, target.y); target = null; }
                 player.setFlipX(player.body.velocity.x < 0);
-                
-                // تحديث الرصيد والحفظ
-                score += 0.001;
-                updateUI();
-                
-                // النمو التدريجي
-                if (player.scale < 0.6) {
-                    player.setScale(player.scale + 0.00001);
-                    updateCameraZoom(this, score);
-                }
-
-                // إظهار الهالة لو أصبح "ملك"
-                if (score > 10) {
-                    aura.setPosition(player.x, player.y + 20);
-                    aura.setAlpha(0.3);
-                    aura.setDepth(99);
-                    aura.rotation += 0.02;
-                }
-            }
-            
-            // حفظ البيانات كل 100 فريم تحسينًا للأداء
-            if (Phaser.Math.Between(0, 100) > 98) {
-                localStorage.setItem('lion_score', score);
             }
         }
 
-        function updateUI() {
-            document.getElementById('score-display').innerText = score.toFixed(3);
-            let label = document.getElementById('rank-label');
-            if (score > 50) label.innerText = "الإمبراطور الأخير";
-            else if (score > 10) label.innerText = "الأسد الملك";
-            else if (score > 2) label.innerText = "السبع الفتي";
-            else label.innerText = "شبل ناشئ";
+        // وظائف المتجر
+        function toggleShop() {
+            const shop = document.getElementById('shop');
+            shop.style.display = (shop.style.display === 'block') ? 'none' : 'block';
         }
 
-        function updateCameraZoom(scene, s) {
-            let zoomLevel = 1.2 - (s * 0.01);
-            if (zoomLevel < 0.7) zoomLevel = 0.7;
-            scene.cameras.main.setZoom(zoomLevel);
+        function buyItem(price) {
+            if (balance >= price) {
+                balance -= price;
+                document.getElementById('balance').innerText = balance.toFixed(2);
+                alert("تمت العملية بنجاح! زادت هيبة ملكك. 🦁✨");
+            } else {
+                alert("رصيدك غير كافٍ.. اذهب للتعدين أو الاستثمار!");
+            }
         }
     </script>
 </body>
