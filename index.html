@@ -1,121 +1,50 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>$LAST Empire - Freedom & Trade</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #020617; overflow: hidden; touch-action: none; font-family: sans-serif; }
-    </style>
-</head>
-<body>
-<script>
-const tg = window.Telegram.WebApp;
-tg.expand();
-
-class MasterEmpire extends Phaser.Scene {
-    constructor() { super('MasterEmpire'); }
-
+// --- كود المباني التفاعلية داخل الكيان ---
+class EmpireCity extends Phaser.Scene {
+    // ... (تكملة الكود السابق مع التعديل في create)
+    
     create() {
         const { width, height } = this.scale;
-        
-        // 1. الخلفية الرقمية
-        this.add.grid(width/2, height/2, width*2, height*2, 40, 40, 0x0f172a, 0.3).setAlpha(0.4);
+        this.physics.world.setBounds(0, 0, width, height);
 
-        // 2. الأسد القائد (اللاعب)
-        this.player = this.add.container(width/2, height/2);
-        let aura = this.add.circle(0, 0, 35, 0xffd700, 0.2).setStrokeStyle(2, 0xffd700);
-        let lion = this.add.text(0, 0, '🦁', {fontSize: '45px'}).setOrigin(0.5);
-        this.player.add([aura, lion]);
+        // 1. بناء "منبر الحرية" (مبنى أثري)
+        this.freedomBuilding = this.createStructure(width * 0.2, height * 0.3, '🏛️', 'منبر الحرية', 0x38bdf8);
+        
+        // 2. بناء "البورصة الملكية" (ناطحة سحاب)
+        this.tradingBuilding = this.createStructure(width * 0.8, height * 0.3, '📊', 'البورصة', 0x4ade80);
+        
+        // 3. بناء "المتجر الإمبراطوري" (خزنة ذهب)
+        this.shopBuilding = this.createStructure(width * 0.5, height * 0.7, '🏦', 'المتجر', 0xfbbf24);
+
+        // الأسد (اللاعب)
+        this.player = this.add.text(width/2, height/2, '🦁', {fontSize: '50px'}).setOrigin(0.5);
         this.physics.add.existing(this.player);
 
-        // 3. نظام العملات (الذهب)
-        this.coins = this.physics.add.group();
-        this.time.addEvent({ delay: 2000, callback: () => this.spawnCoin(), loop: true });
-
-        // 4. شريط التنقل العلوي (The Command Center)
-        this.createNav();
-
-        // 5. النوافذ (البورصة، المنبر، المتجر)
-        this.tradingWin = this.createWindow("📊 البورصة الملكية", 0x4ade80, "chart");
-        this.freedomWin = this.createWindow("🏛️ منبر الحرية", 0x38bdf8, "social");
-        this.shopWin = this.createWindow("🛒 متجر السيادة", 0xfbbf24, "shop");
-
-        // 6. شريط الأخبار العاجلة
-        this.createTicker();
-
-        // التفاعل
-        this.physics.add.overlap(this.player, this.coins, (p, c) => c.destroy());
-    }
-
-    createNav() {
-        const width = this.scale.width;
-        let navBg = this.add.rectangle(width/2, 45, width, 90, 0x000000, 0.8).setDepth(100);
-        const tabs = [
-            {t: 'البورصة', c: 0x4ade80, win: 'tradingWin'},
-            {t: 'المنبر', c: 0x38bdf8, win: 'freedomWin'},
-            {t: 'المتجر', c: 0xfbbf24, win: 'shopWin'}
-        ];
-        tabs.forEach((tab, i) => {
-            let btn = this.add.text(65 + (i*110), 45, tab.t, {fontSize: '16px', fill: '#fff', backgroundColor: '#1e293b', padding: 8})
-                .setOrigin(0.5).setInteractive().setDepth(101);
-            btn.on('pointerdown', () => {
-                this.closeAll();
-                this[tab.win].setVisible(true);
-            });
+        // نظام التصادم: لما الأسد يلمس المبنى يفتح القائمة
+        this.physics.add.overlap(this.player, [this.freedomBuilding, this.tradingBuilding, this.shopBuilding], (p, b) => {
+            this.handleBuildingClick(b.getData('type'));
         });
+
+        this.add.text(width/2, 20, "💡 حرك الأسد نحو المبنى للدخول", {fill: '#aaa'}).setOrigin(0.5);
     }
 
-    createWindow(title, theme, type) {
-        const { width, height } = this.scale;
-        let win = this.add.container(width/2, height/2).setVisible(false).setDepth(200);
-        let bg = this.add.rectangle(0, 0, width*0.9, height*0.7, 0x020617, 0.98).setStrokeStyle(2, theme);
-        let head = this.add.text(0, -height*0.3, title, {fontSize: '22px', fill: theme}).setOrigin(0.5);
-
-        // إضافة محتوى حسب النوع
-        if(type === "social") {
-            win.add(this.add.text(-width*0.4, -height*0.15, "👤 الأسد الجسور:\nالحرية هي العملة الأغلى.. TON للقمر! 🔥\n\n👤 ملك الزمان:\nانتهيت من كورس التحليل، الأكاديمية ممتازة.", {fontSize: '14px', lineSpacing: 10}));
-            win.add(this.add.text(0, height*0.1, "[ 👍 لايك ]   [ 🔄 مشاركة ]", {fill: theme}).setOrigin(0.5).setInteractive());
-        } else if(type === "chart") {
-            let g = this.add.graphics();
-            g.lineStyle(2, theme);
-            for(let i=0; i<10; i++) g.strokeRect(-140+(i*30), Math.random()*50, 15, -Math.random()*120);
-            win.add(g);
-        }
-
-        let close = this.add.text(0, height*0.32, "إغلاق X", {fill: '#ff4444'}).setOrigin(0.5).setInteractive().on('pointerdown', () => win.setVisible(false));
-        win.add([bg, head, close]);
-        return win;
-    }
-
-    createTicker() {
-        this.ticker = this.add.text(this.scale.width, this.scale.height - 30, "🌍 عاجل: منصة $LAST تفتح باب الانضمام للكلان ● BTC يتجاوز القمة ● الحرية للجميع", {fill: '#4ade80'});
-    }
-
-    spawnCoin() {
-        let c = this.add.text(Phaser.Math.Between(50, this.scale.width-50), Phaser.Math.Between(150, this.scale.height-100), '💰');
-        this.coins.add(c);
-    }
-
-    closeAll() {
-        this.tradingWin.setVisible(false);
-        this.freedomWin.setVisible(false);
-        this.shopWin.setVisible(false);
-    }
-
-    update() {
-        if (this.input.activePointer.isDown) this.physics.moveToObject(this.player, this.input.activePointer, 300);
-        else this.player.body.setVelocity(0);
+    createStructure(x, y, emoji, name, color) {
+        let container = this.add.container(x, y).setSize(80, 80).setData('type', name);
         
-        this.ticker.x -= 1.5;
-        if (this.ticker.x < -this.ticker.width) this.ticker.x = this.scale.width;
+        // تأثير توهج تحت المبنى
+        let glow = this.add.circle(0, 0, 40, color, 0.2);
+        let icon = this.add.text(0, -10, emoji, {fontSize: '60px'}).setOrigin(0.5);
+        let label = this.add.text(0, 35, name, {fontSize: '14px', fill: '#fff', backgroundColor: '#000'}).setOrigin(0.5);
+        
+        container.add([glow, icon, label]);
+        this.physics.add.existing(container);
+        return container;
+    }
+
+    handleBuildingClick(type) {
+        // هنا نفتح النوافذ اللي عملناها قبل كده حسب اسم المبنى
+        console.log("دخول مبنى: " + type);
+        if(type === 'منبر الحرية') this.freedomWin.setVisible(true);
+        if(type === 'البورصة') this.tradingWin.setVisible(true);
+        if(type === 'المتجر') this.shopWin.setVisible(true);
     }
 }
-
-const config = { type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, scene: MasterEmpire, physics: { default: 'arcade' } };
-new Phaser.Game(config);
-</script>
-</body>
-</html>
