@@ -2,13 +2,12 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>$LAST Empire - Future Academy</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>$LAST Empire - The Hub</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial', sans-serif; }
-        canvas { display: block; }
+        body { margin: 0; background: #020617; overflow: hidden; touch-action: none; }
     </style>
 </head>
 <body>
@@ -16,128 +15,95 @@
 const tg = window.Telegram.WebApp;
 tg.expand();
 
-class GameScene extends Phaser.Scene {
-    constructor() {
-        super('GameScene');
-        this.score = 150; // رصيد ذهب تجريبي
-    }
-
-    preload() {
-        // هنا بنحمل الصور (استخدم روابط مؤقتة)
-        this.load.image('lion', 'https://labs.phaser.io/assets/sprites/behold.png');
-    }
+class IntegratedGame extends Phaser.Scene {
+    constructor() { super('IntegratedGame'); }
 
     create() {
         const { width, height } = this.scale;
+        this.gold = 0;
 
-        // 1. الأسد (القائد)
-        this.player = this.add.sprite(width / 2, height / 2, 'lion').setScale(0.5);
-        this.add.text(width/2, height/2 + 60, "القائد الملكي", {fill: '#ffd700'}).setOrigin(0.5);
+        // 1. الخلفية (ميدان الكيان)
+        this.add.grid(width/2, height/2, width*2, height*2, 50, 50, 0x0f172a).setAlpha(0.5);
 
-        // 2. شريط الأخبار العاجلة (News Ticker)
-        this.createTicker();
+        // 2. الأسد (القائد) مع إضافة الفيزياء
+        this.player = this.add.container(width/2, height/2);
+        let lionBody = this.add.circle(0, 0, 30, 0xffd700).setStrokeStyle(2, 0xffffff);
+        let lionEmoji = this.add.text(0, 0, '🦁', {fontSize: '40px'}).setOrigin(0.5);
+        this.player.add([lionBody, lionEmoji]);
+        this.physics.add.existing(this.player);
+        this.player.body.setCollideWorldBounds(true);
 
-        // 3. أزرار التحكم في الكيان (القائمة الجانبية)
-        this.createAdminButtons();
+        // 3. مجموعة العملات (أصول اللعبة)
+        this.coins = this.physics.add.group();
+        this.spawnCoin();
 
-        // 4. إنشاء الواجهات (تكون مخفية)
-        this.createTradingUI();
-        this.createShopUI();
-
-        // رسالة ترحيب من تليجرام
-        tg.showAlert("مرحباً بك في كيان $LAST الإمبراطوري");
-    }
-
-    createTicker() {
-        const news = [
-            "🔴 عاجل: عملة $LAST تستعد للإدراج", 
-            "🌍 سعر TON الحلي: 5.40 USD", 
-            "🎓 الأكاديمية: درس جديد في تحليل الشموع متاح الآن",
-            "🔥 مجتمع الأسود يتجاوز 10,000 عضو"
-        ];
-        let bar = this.add.rectangle(this.scale.width/2, this.scale.height - 20, this.scale.width, 40, 0x000000, 0.9);
-        this.tickerText = this.add.text(this.scale.width, this.scale.height - 30, news.join("    ●    "), {
-            fontSize: '18px', fill: '#00ff00', fontWeight: 'bold'
-        });
-    }
-
-    createAdminButtons() {
-        const btnStyle = { backgroundColor: '#222', padding: 10, borderRadius: 5 };
+        // 4. واجهة المستخدم (UI)
+        this.scoreText = this.add.text(20, 80, 'Gold: 0', {fontSize: '20px', fill: '#ffd700', fontWeight: 'bold'});
+        this.createTopNav();
+        this.createNewsTicker();
         
-        // زر البورصة
-        this.add.text(20, 20, '📊 البورصة', {fill: '#0f0', ...btnStyle}).setInteractive()
-            .on('pointerdown', () => this.toggleUI(this.tradingUI));
+        // النوافذ (البورصة والمتجر)
+        this.tradingWin = this.createWindow("📊 بورصة العملات الحية", 0x4ade80);
+        this.shopWin = this.createWindow("🛒 متجر السيادة", 0xfbbf24);
 
-        // زر المتجر
-        this.add.text(120, 20, '🛒 المتجر', {fill: '#ffd700', ...btnStyle}).setInteractive()
-            .on('pointerdown', () => this.toggleUI(this.shopUI));
-
-        // زر التواصل
-        this.add.text(220, 20, '💬 التواصل', {fill: '#0af', ...btnStyle}).setInteractive()
-            .on('pointerdown', () => tg.showAlert("جاري فتح ساحة النقاش الملكية..."));
+        // تصادم الأسد مع العملات
+        this.physics.add.overlap(this.player, this.coins, this.collectCoin, null, this);
     }
 
-    createTradingUI() {
+    spawnCoin() {
+        const x = Phaser.Math.Between(50, this.scale.width - 50);
+        const y = Phaser.Math.Between(150, this.scale.height - 100);
+        let coin = this.add.text(x, y, '💰', {fontSize: '24px'});
+        this.coins.add(coin);
+    }
+
+    collectCoin(player, coin) {
+        coin.destroy();
+        this.gold += 10;
+        this.scoreText.setText('Gold: ' + this.gold);
+        this.spawnCoin(); // تظهر عملة جديدة
+    }
+
+    createTopNav() {
+        const width = this.scale.width;
+        let nav = this.add.rectangle(width/2, 40, width, 80, 0x000000, 0.7).setDepth(100);
+        let btn1 = this.add.text(60, 40, 'البورصة', {fill: '#4ade80', backgroundColor: '#1e293b', padding: 8}).setInteractive().setDepth(101);
+        let btn2 = this.add.text(180, 40, 'المتجر', {fill: '#fbbf24', backgroundColor: '#1e293b', padding: 8}).setInteractive().setDepth(101);
+        
+        btn1.on('pointerdown', () => { this.tradingWin.setVisible(true); this.shopWin.setVisible(false); });
+        btn2.on('pointerdown', () => { this.shopWin.setVisible(true); this.tradingWin.setVisible(false); });
+    }
+
+    createWindow(title, color) {
         const { width, height } = this.scale;
-        this.tradingUI = this.add.container(width/2, height/2).setVisible(false).setDepth(10);
-        
-        let bg = this.add.rectangle(0, 0, width*0.9, height*0.7, 0x0a0a0a, 0.95).setStrokeStyle(2, 0x00ff00);
-        let title = this.add.text(0, -height*0.3, "📊 منصة التداول الحية (Live)", {fontSize: '22px', fill: '#0f0'}).setOrigin(0.5);
-        
-        // رسم شارت بسيط (شموع وهمية)
-        let chart = this.add.graphics();
-        chart.lineStyle(2, 0x00ff00);
-        for(let i=0; i<10; i++) {
-            chart.strokeRect(-150 + (i*30), Math.random()*50, 15, Math.random()*-100);
-        }
-        
-        let dataInfo = this.add.text(-width*0.4, 50, "Asset: TON/USD\nHigh: 5.60\nLow: 5.10\nVol: 1.2M", {lineSpacing: 10});
-        
-        let closeBtn = this.add.text(0, height*0.3, "[ إغلاق ]", {fill: '#f00'}).setInteractive().on('pointerdown', () => this.tradingUI.setVisible(false));
-        
-        this.tradingUI.add([bg, title, chart, dataInfo, closeBtn]);
+        let win = this.add.container(width/2, height/2).setVisible(false).setDepth(200);
+        let bg = this.add.rectangle(0, 0, width*0.85, height*0.6, 0x020617, 0.95).setStrokeStyle(2, color);
+        let t = this.add.text(0, -height*0.25, title, {fontSize: '22px', fill: color}).setOrigin(0.5);
+        let close = this.add.text(0, height*0.25, "[ إغلاق ]", {fill: '#f00'}).setInteractive().on('pointerdown', () => win.setVisible(false)).setOrigin(0.5);
+        win.add([bg, t, close]);
+        return win;
     }
 
-    createShopUI() {
-        const { width, height } = this.scale;
-        this.shopUI = this.add.container(width/2, height/2).setVisible(false).setDepth(10);
-        
-        let bg = this.add.rectangle(0, 0, width*0.8, height*0.6, 0x111, 0.95).setStrokeStyle(2, 0xffd700);
-        let title = this.add.text(0, -height*0.25, "🏛️ متجر الأصول الرقمية", {fontSize: '22px', fill: '#ffd700'}).setOrigin(0.5);
-        
-        let item1 = this.add.text(0, -50, "✨ هالة النجوم (50 Stars)", {backgroundColor: '#333', padding: 10}).setOrigin(0.5).setInteractive()
-            .on('pointerdown', () => tg.showAlert("سيتم فتح فاتورة نجوم تليجرام..."));
-            
-        let item2 = this.add.text(0, 50, "💎 باقة سيولة (0.1 TON)", {backgroundColor: '#333', padding: 10}).setOrigin(0.5).setInteractive()
-            .on('pointerdown', () => tg.showAlert("جاري الاتصال بمحفظة TON..."));
-
-        let closeBtn = this.add.text(0, height*0.25, "[ إغلاق ]", {fill: '#f00'}).setInteractive().on('pointerdown', () => this.shopUI.setVisible(false));
-        
-        this.shopUI.add([bg, title, item1, item2, closeBtn]);
-    }
-
-    toggleUI(ui) {
-        ui.setVisible(!ui.visible);
+    createNewsTicker() {
+        this.ticker = this.add.text(this.scale.width, this.scale.height - 30, "🔥 عاجل: $LAST تسيطر على السوق ● تعلم التداول في الأكاديمية الآن ● $TON يرتفع 5%", {fill: '#4ade80'});
     }
 
     update() {
-        // تحريك شريط الأخبار
-        this.tickerText.x -= 1.5;
-        if (this.tickerText.x < -this.tickerText.width) {
-            this.tickerText.x = this.scale.width;
+        // حركة الأسد باللمس
+        if (this.input.activePointer.isDown) {
+            this.physics.moveToObject(this.player, this.input.activePointer, 250);
+        } else {
+            this.player.body.setVelocity(0);
         }
+
+        // تحريك الأخبار
+        this.ticker.x -= 2;
+        if (this.ticker.x < -this.ticker.width) this.ticker.x = this.scale.width;
     }
 }
 
-const config = {
-    type: Phaser.AUTO,
-    width: window.innerWidth,
-    height: window.innerHeight,
-    scene: GameScene,
-    physics: { default: 'arcade' }
-};
-
-const game = new Phaser.Game(config);
+const config = { type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, scene: IntegratedGame, physics: { default: 'arcade' } };
+new Phaser.Game(config);
 </script>
 </body>
 </html>
