@@ -3,96 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million | العرين</title>
+    <title>The Last Million | غابة العرين</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #0b0e14; overflow: hidden; }
-        #game-container { width: 100vw; height: 100vh; }
-        .ui-overlay {
-            position: fixed; top: 20px; left: 0; right: 0;
-            display: flex; justify-content: center; z-index: 100;
-            pointer-events: none;
-        }
-        .stat-card {
-            background: rgba(0,0,0,0.8); border: 1px solid #d4af37;
-            padding: 10px 25px; border-radius: 30px; color: #d4af37;
-            font-family: 'Arial', sans-serif; font-weight: bold; font-size: 20px;
-        }
+        body { margin: 0; background: #050a05; overflow: hidden; }
+        .ui { position: fixed; top: 15px; width: 100%; text-align: center; z-index: 1000; pointer-events: none; }
+        .stat { background: rgba(0,0,0,0.85); border: 2px solid #d4af37; padding: 10px 20px; border-radius: 50px; color: gold; font-family: sans-serif; box-shadow: 0 0 20px rgba(212,175,55,0.4); display: inline-block; }
     </style>
 </head>
 <body>
 
-    <div class="ui-overlay">
-        <div class="stat-card">السيادة: <span id="score">0.000</span> $LAST</div>
+    <div class="ui">
+        <div class="stat">السيادة: <span id="score">0.0000</span> $LAST</div>
     </div>
 
-    <div id="game-container"></div>
+    <div id="game"></div>
 
     <script>
-        // إعدادات المحرك الاحترافي (زي ألعاب Moltbook)
         const config = {
             type: Phaser.AUTO,
             width: window.innerWidth,
             height: window.innerHeight,
-            parent: 'game-container',
+            parent: 'game',
             transparent: true,
             physics: { default: 'arcade' },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player;
-        let cursors;
-        let score = 0;
-        let scoreText;
+        let player, score = 0, scoreText;
 
         function preload() {
-            // تحميل صورة الأسد من الرابط بتاعك
+            // تحميل صورة الأسد
             this.load.image('lion', 'wingedlionpng.png');
-            // تحميل خلفية الغابة
-            this.load.image('forest', 'https://www.transparenttextures.com/patterns/dark-matter.png');
+            // تحميل عناصر الغابة (مؤثرات بصرية)
+            this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/490/490391.png'); // أيقونة شجرة كمثال
+            this.load.image('grass', 'https://www.transparenttextures.com/patterns/dark-matter.png');
         }
 
         function create() {
-            // إضافة خلفية قابلة للتكرار (الغابة)
-            this.bg = this.add.tileSprite(0, 0, 4000, 4000, 'forest').setOrigin(0, 0);
+            // 1. أرضية الغابة (تتحرك للأبد)
+            this.ground = this.add.tileSprite(0, 0, 8000, 8000, 'grass').setOrigin(0.5);
+            this.ground.setAlpha(0.3);
 
-            // إنشاء الأسد في المركز
-            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion');
-            player.setScale(0.3); // تصغير الحجم ليناسب الغابة
-            player.setCollideWorldBounds(true);
+            // 2. توزيع أشجار عشوائية لإعطاء مظهر الغابة
+            for (let i = 0; i < 100; i++) {
+                let tx = Phaser.Math.Between(-2000, 2000);
+                let ty = Phaser.Math.Between(-2000, 2000);
+                let tree = this.add.image(tx, ty, 'tree').setScale(Phaser.Math.FloatBetween(0.1, 0.3));
+                tree.setAlpha(0.6);
+            }
 
-            // الكاميرا تلحق الأسد
-            this.cameras.main.startFollow(player, true, 0.1, 0.1);
+            // 3. الأسد البطل
+            player = this.physics.add.sprite(0, 0, 'lion');
+            player.setScale(0.35).setDepth(10);
+            player.setDamping(true).setDrag(0.1);
 
-            // التحكم باللمس
+            // 4. الكاميرا الذكية
+            this.cameras.main.startFollow(player, true, 0.08, 0.08);
+            this.cameras.main.setZoom(1);
+
+            // 5. التحكم باللمس (المشي في الغابة)
             this.input.on('pointerdown', (pointer) => {
-                // تحريك الأسد لمكان اللمس بنعومة
-                this.physics.moveToObject(player, pointer, 300);
+                const worldPoint = pointer.positionToCamera(this.cameras.main);
+                this.physics.moveToObject(player, worldPoint, 250);
                 
-                // اهتزاز التليجرام
-                if (window.Telegram?.WebApp) {
-                    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-                }
+                // اهتزاز خفيف عند بدء الحركة
+                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
             });
 
             scoreText = document.getElementById('score');
         }
 
         function update() {
-            // جعل الخلفية تتحرك مع الأسد لإعطاء إحساس بالعمق
-            this.bg.x = player.x - 2000;
-            this.bg.y = player.y - 2000;
-
-            // تحديث الرصيد عند الحركة (محاكاة الصيد)
+            // تحديث الرصيد بناءً على مسافة المشي (صيد مستمر)
             if (player.body.speed > 0) {
                 score += 0.0001;
                 scoreText.innerText = score.toFixed(4);
+                
+                // تدوير الأسد في اتجاه الحركة
+                player.setFlipX(player.body.velocity.x < 0);
             }
-
-            // لف وجه الأسد حسب اتجاه الحركة
-            if (player.body.velocity.x > 0) player.setFlipX(false);
-            else if (player.body.velocity.x < 0) player.setFlipX(true);
         }
     </script>
 </body>
