@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>body { margin: 0; background: #000; overflow: hidden; }</style>
+    <style>body { margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; }</style>
 </head>
 <body>
     <script>
@@ -12,72 +12,85 @@
             type: Phaser.AUTO,
             width: window.innerWidth,
             height: window.innerHeight,
-            physics: { default: 'arcade' },
+            physics: { default: 'arcade', arcade: { debug: false } },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player, target, coins, scoreText;
+        let player, target, coins, scoreText, upgradeZone;
         let score = 0;
 
+        // --- 1. مرحلة التجهيز (الصور) ---
         function preload() {
-            // روابط الصور اللي اشتغلت معانا
             this.load.image('grass', 'https://labs.phaser.io/assets/textures/grass.png');
             this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png');
             this.load.image('building', 'https://labs.phaser.io/assets/sprites/fuji.png');
-            this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png'); // التفاحة كعملة مؤقتة
+            this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png');
         }
 
+        // --- 2. مرحلة التأسيس (البناء) ---
         function create() {
-            // عالم واسع (3000x3000)
+            // حدود العالم
             this.physics.world.setBounds(0, 0, 3000, 3000);
             this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
 
-            // إضافة المباني
-            this.add.image(1200, 1200, 'building').setScale(0.8);
-            this.add.text(1200, 1100, '🏛️ البورصة', { fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
+            // إضافة المبنى الرئيسي
+            this.add.image(1500, 1200, 'building').setScale(1);
+            this.add.text(1500, 1050, '🏛️ المقر الملكي لـ $LAST', { fontSize: '32px', fill: '#ffd700' }).setOrigin(0.5);
 
-            // --- نظام العملات الذهبية ---
+            // --- نظام العملات ---
             coins = this.physics.add.group();
-            for (let i = 0; i < 30; i++) {
-                let x = Phaser.Math.Between(100, 2900);
-                let y = Phaser.Math.Between(100, 2900);
-                let coin = coins.create(x, y, 'coin').setScale(0.5);
-                coin.setTint(0xffd700); // تلوينها بالذهبي
+            for (let i = 0; i < 40; i++) {
+                let x = Phaser.Math.Between(200, 2800);
+                let y = Phaser.Math.Between(200, 2800);
+                let coin = coins.create(x, y, 'coin').setScale(0.6).setTint(0xffd700);
             }
 
-            // --- اللاعب (الأسد) ---
-            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(1.2);
+            // --- منطقة التطوير (الدوامة السحرية) ---
+            upgradeZone = this.add.circle(1500, 1800, 150, 0x00ffff, 0.2);
+            this.physics.add.existing(upgradeZone, true);
+            this.add.text(1500, 1800, '🌀 منطقة القوة\n(50 ذهبة)', { align: 'center', fill: '#00ffff' }).setOrigin(0.5);
+
+            // --- الأسد الملك ---
+            player = this.physics.add.sprite(1500, 1500, 'lion').setScale(1.2);
             player.setCollideWorldBounds(true);
-            
-            // الكاميرا تتبع الأسد
-            this.cameras.main.startFollow(player, true, 0.05, 0.05);
+            this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-            // --- عداد الذهب (UI) ---
+            // --- عداد الذهب ---
             scoreText = this.add.text(20, 20, 'Gold $LAST: 0', { 
-                fontSize: '24px', 
-                fill: '#fff', 
-                backgroundColor: '#00000088',
-                padding: { x: 10, y: 5 }
-            }).setScrollFactor(0); // يثبت في مكانه ولا يتحرك مع الكاميرا
+                fontSize: '28px', fill: '#fff', backgroundColor: '#000000aa', padding: 10 
+            }).setScrollFactor(0);
 
-            // --- التفاعل بين الأسد والذهب ---
+            // --- التفاعلات (جمع الذهب) ---
             this.physics.add.overlap(player, coins, (p, coin) => {
-                coin.destroy(); // اختفاء العملة
-                score += 10;    // زيادة السكور
+                coin.destroy();
+                score += 10;
                 scoreText.setText('Gold $LAST: ' + score);
-                
-                // تأثير بسيط عند الجمع (هزة كاميرا)
-                this.cameras.main.shake(100, 0.005);
+                this.cameras.main.shake(50, 0.003);
+            }, null, this);
+
+            // --- التفاعل مع منطقة التطوير ---
+            this.physics.add.overlap(player, upgradeZone, () => {
+                if (score >= 50) {
+                    score -= 50;
+                    scoreText.setText('Gold $LAST: ' + score);
+                    player.setScale(player.scale + 0.2); // تكبير الحجم
+                    player.setTint(Phaser.Display.Color.RandomRGB().color); // تغيير اللون كتمويه للقوة
+                    alert("⚠️ لقد زادت قوة الأسد الملك!");
+                    // نبعد الأسد شوية عن المنطقة عشان ما يسحبش الـ 50 اللي بعدها فوراً
+                    player.y += 200; 
+                    target = null;
+                }
             }, null, this);
 
             // التحكم باللمس
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 350);
+                this.physics.moveToObject(player, target, 300 + (score * 0.1)); // السرعة تزيد مع الذهب!
             });
         }
 
+        // --- 3. مرحلة التحديث (الحركة) ---
         function update() {
             if (target && player.body) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
@@ -91,3 +104,4 @@
     </script>
 </body>
 </html>
+
