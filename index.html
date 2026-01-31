@@ -1,172 +1,107 @@
-<!DOCTYPE html>
+
+     َََََ<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>body { margin: 0; background: #000; overflow: hidden; font-family: 'Arial', sans-serif; }</style>
+    <style>body { margin: 0; background: #000; overflow: hidden; font-family: Arial, sans-serif; }</style>
 </head>
 <body>
     <script>
+        // --- 1. شاشة البداية ---
+        class StartScene extends Phaser.Scene {
+            constructor() { super({ key: 'StartScene' }); }
+            preload() {
+                this.load.image('lion_logo', 'https://labs.phaser.io/assets/sprites/beast.png');
+            }
+            create() {
+                const { width, height } = this.scale;
+                this.add.image(width/2, height/2 - 150, 'lion_logo').setScale(2);
+                this.add.text(width/2, height/2, '$LAST: The Lion\'s Rise', { fontSize: '40px', fill: '#ffd700', fontWeight: 'bold' }).setOrigin(0.5);
+                this.add.text(width/2, height/2 + 60, 'في مملكة $LAST.. أنت الملك، والمركزية هي الطريد', { fontSize: '18px', fill: '#fff', align: 'center', wordWrap: { width: width - 40 } }).setOrigin(0.5);
+                
+                let btn = this.add.text(width/2, height/2 + 150, '👉 ابدأ الرحلة 👈', { fontSize: '28px', fill: '#0f0', backgroundColor: '#222', padding: 10 }).setOrigin(0.5).setInteractive();
+                btn.on('pointerdown', () => this.scene.start('GameScene'));
+            }
+        }
+
+        // --- 2. مشهد اللعبة الأساسي ---
+        class GameScene extends Phaser.Scene {
+            constructor() { super({ key: 'GameScene' }); }
+            
+            preload() {
+                this.load.image('grass', 'https://labs.phaser.io/assets/textures/grass.png');
+                this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png');
+                this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png');
+                this.load.image('hunter', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
+                this.load.image('prey', 'https://labs.phaser.io/assets/sprites/carrot.png');
+            }
+
+            create() {
+                this.physics.world.setBounds(0, 0, 3000, 3000);
+                this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
+                
+                this.player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.8);
+                this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+                this.hunter = this.physics.add.sprite(2000, 2000, 'hunter').setScale(1.5).setTint(0x333333);
+                
+                this.coins = this.physics.add.group();
+                this.preys = this.physics.add.group();
+                for(let i=0; i<30; i++) this.coins.create(Phaser.Math.Between(100,2900), Phaser.Math.Between(100,2900), 'coin').setTint(0xffd700);
+
+                // نظام المهمات
+                this.quests = { gold: false, grow: false, defeat: false };
+                this.questUI = this.add.text(20, 70, '', { fontSize: '16px', fill: '#0f0', backgroundColor: '#00000088', padding: 5 }).setScrollFactor(0);
+                this.updateQuestUI();
+
+                this.score = 0;
+                this.scoreText = this.add.text(20, 20, 'Gold: 0', { fontSize: '24px', fill: '#fff' }).setScrollFactor(0);
+
+                // التفاعلات
+                this.physics.add.overlap(this.player, this.coins, (p, c) => {
+                    c.destroy(); this.score += 10; this.scoreText.setText('Gold: ' + this.score);
+                    if(this.score >= 100) this.quests.gold = true; this.updateQuestUI();
+                });
+
+                this.physics.add.overlap(this.player, this.preys, (p, pr) => {
+                    pr.destroy(); this.player.setScale(this.player.scale + 0.2);
+                    if(this.player.scale > 1.3) this.quests.grow = true; this.updateQuestUI();
+                });
+
+                this.physics.add.overlap(this.player, this.hunter, () => {
+                    if(this.player.scale > 1.3) {
+                        this.hunter.destroy(); this.quests.defeat = true; this.updateQuestUI();
+                        this.add.text(this.player.x, this.player.y - 50, 'النصر!', { fontSize: '30px', fill: '#f00' });
+                    }
+                });
+
+                this.time.addEvent({ delay: 5000, callback: () => this.preys.create(Phaser.Math.Between(100,2900), Phaser.Math.Between(100,2900), 'prey'), loop: true });
+                this.input.on('pointerdown', (p) => { this.target = p.positionToCamera(this.cameras.main); this.physics.moveToObject(this.player, this.target, 300); });
+            }
+
+            updateQuestUI() {
+                let txt = `قائمة المهمات:\n`;
+                txt += `${this.quests.gold ? '✅' : '⬜'} اجمع 100 ذهبة\n`;
+                txt += `${this.quests.grow ? '✅' : '⬜'} كن أسداً كبيراً (أكل الفريسة)\n`;
+                txt += `${this.quests.defeat ? '✅' : '⬜'} اطرد النظام المركزي (الصياد)`;
+                this.questUI.setText(txt);
+            }
+
+            update() {
+                if(this.target && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.target.x, this.target.y) < 10) this.player.body.reset(this.player.x, this.player.y);
+                if(this.hunter && this.hunter.active) this.physics.moveToObject(this.hunter, this.player, 150);
+            }
+        }
+
         const config = {
             type: Phaser.AUTO,
             width: window.innerWidth,
             height: window.innerHeight,
-            physics: { default: 'arcade', arcade: { debug: false } },
-            scene: { preload: preload, create: create, update: update }
+            physics: { default: 'arcade' },
+            scene: [StartScene, GameScene]
         };
-
-        const game = new Phaser.Game(config);
-        let player, hunter, coins, preys, scoreText, msgText, portal, buildingSpot;
-        let score = 0;
-        let target = null;
-        let isUtopia = false;
-        let playerSpeed = 300;
-
-        function preload() {
-            this.load.image('grass', 'https://labs.phaser.io/assets/textures/grass.png');
-            this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png');
-            this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png');
-            this.load.image('hunter', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
-            this.load.image('prey', 'https://labs.phaser.io/assets/sprites/carrot.png');
-            this.load.image('castle', 'https://labs.phaser.io/assets/sprites/fuji.png');
-        }
-
-        function create() {
-            this.physics.world.setBounds(0, 0, 3000, 3000);
-            this.bg = this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
-
-            // منطقة الأمان (البحيرة)
-            this.lake = this.add.circle(500, 500, 250, 0x00aaff, 0.4);
-            this.physics.add.existing(this.lake, true);
-
-            // الشبل
-            player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.8);
-            player.setCollideWorldBounds(true);
-            this.cameras.main.startFollow(player, true, 0.08, 0.08);
-
-            // الصياد (النظام المركزي)
-            hunter = this.physics.add.sprite(2500, 2500, 'hunter').setScale(1.5).setTint(0x333333);
-
-            // مجموعات الذهب والفرائس
-            coins = this.physics.add.group();
-            preys = this.physics.add.group();
-            for(let i=0; i<40; i++) coins.create(Phaser.Math.Between(100,2900), Phaser.Math.Between(100,2900), 'coin').setTint(0xffd700);
-
-            // عداد النصوص
-            scoreText = this.add.text(20, 20, 'ثروة $LAST: 0', { fontSize: '24px', fill: '#fff', backgroundColor: '#000' }).setScrollFactor(0);
-            msgText = this.add.text(window.innerWidth/2, 100, '', { fontSize: '22px', fill: '#ffff00', fontWeight: 'bold' }).setOrigin(0.5).setScrollFactor(0);
-
-            // ظهور فرائس موسمية
-            this.time.addEvent({
-                delay: 8000,
-                callback: () => {
-                    if (!isUtopia) {
-                        let p = preys.create(Phaser.Math.Between(100,2900), Phaser.Math.Between(100,2900), 'prey').setScale(1.5);
-                        this.time.delayedCall(4000, () => p.destroy());
-                    }
-                }, loop: true
-            });
-
-            // تداخل الصيد
-            this.physics.add.overlap(player, hunter, () => {
-                if (player.scale > 1.4) {
-                    hunter.destroy();
-                    showMsg("👑 النصر! لقد طردت النظام المستبد! ابحث عن البوابة!");
-                    createPortal.call(this);
-                } else if (Phaser.Math.Distance.Between(player.x, player.y, 500, 500) > 250) {
-                    score = Math.max(0, score - 30);
-                    scoreText.setText('ثروة $LAST: ' + score);
-                    player.setPosition(500, 500);
-                    target = null;
-                    this.cameras.main.shake(300, 0.01);
-                    showMsg("⚠️ النظام صادر أموالك! اهرب للبحيرة!");
-                }
-            });
-
-            // أكل الفرائس
-            this.physics.add.overlap(player, preys, (p, prey) => {
-                prey.destroy();
-                player.setScale(player.scale + 0.15);
-                showMsg("🔥 الشبل يكبر.. قوتك تزداد!");
-            });
-
-            // جمع الذهب
-            this.physics.add.overlap(player, coins, (p, c) => {
-                c.destroy();
-                score += isUtopia ? 100 : 10;
-                scoreText.setText('ثروة $LAST: ' + score);
-            });
-
-            this.input.on('pointerdown', (p) => { 
-                target = p.positionToCamera(this.cameras.main); 
-                this.physics.moveToObject(player, target, playerSpeed); 
-            });
-        }
-
-        function update() {
-            if (target && player.body) {
-                if (Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y) < 10) {
-                    player.body.reset(player.x, player.y);
-                    target = null;
-                }
-            }
-
-            if (hunter && hunter.active) {
-                if (player.scale > 1.4) {
-                    // الصياد يهرب من الملك
-                    let angle = Phaser.Math.Angle.Between(player.x, player.y, hunter.x, hunter.y);
-                    hunter.body.setVelocity(Math.cos(angle) * 200, Math.sin(angle) * 200);
-                    hunter.setTint(0xffffff);
-                } else if (Phaser.Math.Distance.Between(player.x, player.y, 500, 500) > 250) {
-                    this.physics.moveToObject(hunter, player, 170);
-                } else {
-                    hunter.body.setVelocity(0);
-                }
-                hunter.setFlipX(hunter.body.velocity.x < 0);
-            }
-            player.setFlipX(player.body.velocity.x < 0);
-        }
-
-        function createPortal() {
-            portal = this.add.circle(1500, 1500, 100, 0xffff00, 0.6);
-            this.physics.add.existing(portal, true);
-            this.add.text(1500, 1400, "🌀 بوابة المدينة الفاضلة", {fill:'#fff'}).setOrigin(0.5);
-            
-            this.physics.add.overlap(player, portal, () => {
-                portal.destroy();
-                startUtopia.call(this);
-            });
-        }
-
-        function startUtopia() {
-            isUtopia = true;
-            playerSpeed = 900; // سرعة البرق
-            this.bg.setTint(0x00ff00); // خلفية خضراء مشعة أو ذهبية
-            showMsg("🏙️ المدينة الفاضلة! ابحث عن الدوائر البيضاء لتبني مملكك!");
-            
-            // نقطة بناء
-            buildingSpot = this.add.circle(1000, 1000, 150, 0xffffff, 0.3);
-            this.physics.add.existing(buildingSpot, true);
-
-            this.physics.add.overlap(player, buildingSpot, () => {
-                if (score >= 200) {
-                    score -= 200;
-                    this.add.image(1000, 1000, 'castle').setScale(1.5);
-                    buildingSpot.destroy();
-                    showMsg("🏰 مبروك! بنيت أول قلعة تدر لك الذهب!");
-                    this.time.addEvent({
-                        delay: 3000,
-                        callback: () => { score += 50; scoreText.setText('ثروة $LAST: ' + score); },
-                        loop: true
-                    });
-                } else {
-                    showMsg("تحتاج 200 ذهبة لبناء القلعة!");
-                }
-            });
-        }
-
-        function showMsg(t) { msgText.setText(t); game.scene.scenes[0].time.delayedCall(3000, () => msgText.setText('')); }
+        new Phaser.Game(config);
     </script>
 </body>
 </html>
