@@ -1,24 +1,48 @@
-// داخل دالة preload
-this.load.image('building_market', 'https://cdn-icons-png.flaticon.com/512/4341/4341044.png'); // مبنى البورصة
-this.load.image('building_shop', 'https://cdn-icons-png.flaticon.com/512/1162/1162464.png');   // مبنى المتجر
-this.load.image('ground', 'https://img.freepik.com/free-vector/green-grass-texture-background_1308-54338.jpg'); // أرضية عشب
+<!DOCTYPE html>
+<html>
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>body { margin: 0; background: #002200; }</style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            physics: { default: 'arcade' },
+            scene: { preload: preload, create: create, update: update }
+        };
 
-// داخل دالة create
-// 1. إضافة الأرضية بدل السواد
-let background = this.add.tileSprite(2000, 2000, 4000, 4000, 'ground').setAlpha(0.3);
+        const game = new Phaser.Game(config);
+        let player, target;
 
-// 2. إضافة المباني كمناطق تفاعلية
-let marketHouse = this.physics.add.staticSprite(1800, 1800, 'building_market').setScale(0.6);
-let shopHouse = this.physics.add.staticSprite(2200, 1800, 'building_shop').setScale(0.6);
+        function preload() {
+            // صور بديلة مضمونة للعمل
+            this.load.image('lion', 'https://cdn-icons-png.flaticon.com/512/616/616412.png');
+            this.load.image('building', 'https://cdn-icons-png.flaticon.com/128/3412/3412581.png');
+        }
 
-// 3. إضافة نصوص فوق المباني
-this.add.text(1800, 1700, "🏛️ البورصة العالمية", { fill: '#ffd700', fontSize: '20px', backgroundColor: '#000' }).setOrigin(0.5);
-this.add.text(2200, 1700, "💰 المتجر الملكي", { fill: '#ffd700', fontSize: '20px', backgroundColor: '#000' }).setOrigin(0.5);
+        function create() {
+            // إضافة مبنى البورصة كمثال
+            let market = this.physics.add.staticImage(window.innerWidth/2, window.innerHeight/3, 'building').setScale(0.8);
+            this.add.text(window.innerWidth/2, window.innerHeight/3 - 60, "🏛️ البورصة", {fontSize:'20px', fill:'#ffd700'}).setOrigin(0.5);
 
-// 4. نظام "الاقتراب للدخول"
-this.physics.add.overlap(player, marketHouse, () => {
-    // تظهر رسالة "اضغط للدخول للبورصة"
-    if (Phaser.Input.Keyboard.JustDown(this.input.activePointer)) {
-        openMarket(); // الدالة اللي برمجناها
-    }
-});
+            // اللاعب
+            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(0.2);
+            
+            this.input.on('pointerdown', (pointer) => {
+                target = pointer;
+                this.physics.moveToObject(player, target, 200);
+            });
+        }
+
+        function update() {
+            if (target) {
+                let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
+                if (dist < 10) player.body.reset(player.x, player.y);
+            }
+        }
+    </script>
+</body>
+</html>
