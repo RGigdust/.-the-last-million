@@ -3,90 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million | Forest</title>
+    <title>The Last Million | Kingdom</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #050a05; overflow: hidden; }
-        .ui { position: fixed; top: 15px; width: 100%; text-align: center; z-index: 1000; pointer-events: none; color: gold; font-family: sans-serif; font-size: 22px; font-weight: bold; text-shadow: 2px 2px 5px black; }
+        body { margin: 0; background: #050a05; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* تصميم النافذة الزجاجية */
+        .modal {
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(0);
+            width: 80%; max-width: 400px; background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(15px); border: 1px solid rgba(212, 175, 55, 0.5);
+            border-radius: 25px; z-index: 3000; padding: 20px; color: white;
+            text-align: center; transition: 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        .modal.active { transform: translate(-50%, -50%) scale(1); }
+        .modal h2 { color: gold; margin-top: 0; }
+        .close-btn { background: gold; color: black; border: none; padding: 10px 20px; border-radius: 10px; cursor: pointer; font-weight: bold; margin-top: 15px; }
+        
+        #game-ui { position: fixed; top: 15px; width: 100%; text-align: center; z-index: 1000; pointer-events: none; color: gold; font-size: 20px; }
     </style>
 </head>
 <body>
-    <div class="ui">السيادة: <span id="score">0</span> $LAST</div>
+
+    <div id="game-ui">السيادة: <span id="score">0</span> $LAST</div>
+
+    <div id="cave-modal" class="modal">
+        <h2>👑 عرش الإمبراطور</h2>
+        <p>مرحباً بك في عرينك الخاص. هنا يمكنك رؤية رتبتك وإنجازاتك في الغابة.</p>
+        <button class="close-btn" onclick="closeModal('cave-modal')">العودة للغابة</button>
+    </div>
+
+    <div id="shop-modal" class="modal">
+        <h2>🛒 سوق الغابة</h2>
+        <p>طور مخالبك وزد سرعتك لتصطاد المزيد من عملات $LAST.</p>
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 10px;">عنصر قادم قريباً...</div>
+        <button class="close-btn" onclick="closeModal('shop-modal')">إغلاق</button>
+    </div>
+
     <div id="game"></div>
 
     <script>
         const config = {
-            type: Phaser.AUTO,
-            width: window.innerWidth, height: window.innerHeight,
+            type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
             parent: 'game', transparent: true,
             physics: { default: 'arcade' },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player, target, score = 0;
+        let player, target, landmarks;
 
         function preload() {
-            // تحميل الصور (تأكد أن صورة الأسد بنفس الاسم في GitHub)
             this.load.image('lion', 'wingedlionpng.png');
-            this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/2822/2822361.png'); // شجرة غابة
-            this.load.image('coin', 'https://cdn-icons-png.flaticon.com/512/272/272525.png'); // عملة صيد
+            this.load.image('cave', 'https://cdn-icons-png.flaticon.com/512/13600/13600392.png');
+            this.load.image('shop', 'https://cdn-icons-png.flaticon.com/512/1162/1162456.png');
         }
 
         function create() {
-            // مساحة الغابة كبيرة جداً
             this.physics.world.setBounds(0, 0, 3000, 3000);
+            landmarks = this.physics.add.staticGroup();
 
-            // إضافة أشجار بشكل عشوائي في الغابة
-            for (let i = 0; i < 50; i++) {
-                let x = Phaser.Math.Between(100, 2900);
-                let y = Phaser.Math.Between(100, 2900);
-                this.add.image(x, y, 'tree').setScale(0.2).setAlpha(0.7);
-            }
+            let cave = landmarks.create(1500, 300, 'cave').setScale(0.3).refreshBody();
+            cave.id = 'cave-modal';
 
-            // إضافة عملات للصيد
-            this.coins = this.physics.add.group();
-            for (let i = 0; i < 20; i++) {
-                let x = Phaser.Math.Between(100, 2900);
-                let y = Phaser.Math.Between(100, 2900);
-                let c = this.coins.create(x, y, 'coin').setScale(0.05);
-                c.setBounce(1);
-            }
+            let shop = landmarks.create(2500, 1500, 'shop').setScale(0.3).refreshBody();
+            shop.id = 'shop-modal';
 
-            // إنشاء الأسد
-            player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.3).setDepth(1);
+            player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.3);
             player.setCollideWorldBounds(true);
 
-            // الكاميرا تلحق الأسد
             this.cameras.main.startFollow(player, true, 0.05, 0.05);
-            this.cameras.main.setBounds(0, 0, 3000, 3000);
 
-            // اللمس للحركة
             this.input.on('pointerdown', (pointer) => {
+                if (document.querySelector('.modal.active')) return; // منع الحركة والنافذة مفتوحة
                 target = pointer.positionToCamera(this.cameras.main);
                 this.physics.moveToObject(player, target, 250);
-                
-                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
             });
 
-            // تفاعل الصيد (لما الأسد يلمس العملة)
-            this.physics.add.overlap(player, this.coins, (p, coin) => {
-                coin.disableBody(true, true);
-                score += 10;
-                document.getElementById('score').innerText = score;
-                if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+            // التفاعل مع المعالم
+            this.physics.add.overlap(player, landmarks, (p, landmark) => {
+                openModal(landmark.id);
+                player.body.stop(); // إيقاف الأسد عند الوصول
             }, null, this);
         }
 
         function update() {
-            if (target) {
+            if (target && player.body.speed > 0) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
                 if (dist < 10) player.body.reset(target.x, target.y);
-                
-                // لف وجه الأسد حسب الاتجاه
-                if (player.body.velocity.x > 0) player.setFlipX(false);
-                else if (player.body.velocity.x < 0) player.setFlipX(true);
+                player.setFlipX(player.body.velocity.x < 0);
             }
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.add('active');
+            if (window.Telegram?.WebApp) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+            target = null; // إعادة ضبط الهدف لبدء حركة جديدة
         }
     </script>
 </body>
