@@ -3,45 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million | Grand Empire</title>
+    <title>The Last Million | The Oasis Update</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; background: #050a05; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        /* واجهة المستخدم الاحترافية */
-        .hud { position: fixed; top: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; z-index: 100; pointer-events: none; }
-        .stat-box { background: rgba(0, 0, 0, 0.7); border: 1px solid gold; color: gold; padding: 5px 15px; border-radius: 10px; box-shadow: 0 0 10px rgba(255, 215, 0, 0.3); pointer-events: auto; }
-        .gopass-btn { position: fixed; bottom: 20px; right: 20px; background: linear-gradient(45deg, #ff00cc, #3333ff); color: white; padding: 10px 20px; border-radius: 25px; cursor: pointer; border: none; font-weight: bold; z-index: 100; box-shadow: 0 0 15px #ff00cc; }
-        .shop-panel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 60%; background: rgba(10, 20, 10, 0.95); border: 3px solid gold; border-radius: 20px; display: none; z-index: 2000; padding: 20px; color: white; overflow-y: auto; }
-        .close-btn { color: red; float: left; cursor: pointer; font-weight: bold; }
-        .item-card { border: 1px solid #444; padding: 10px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; border-radius: 10px; background: rgba(255,255,255,0.05); }
+        body { margin: 0; background: #020502; overflow: hidden; font-family: 'Arial', sans-serif; }
+        .ui-overlay { position: fixed; top: 0; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 100; pointer-events: none; }
+        .hunt-timer { background: rgba(255, 0, 0, 0.6); color: white; padding: 5px 20px; border-radius: 0 0 15px 15px; border: 1px solid white; font-weight: bold; }
+        .chat-bubble { position: absolute; background: white; border-radius: 10px; padding: 5px; font-size: 12px; display: none; }
     </style>
 </head>
 <body>
 
-    <div class="hud">
-        <div class="stat-box">💰 الرصيد: <span id="balance">0.00</span> $LAST</div>
-        <div class="stat-box">🏰 الجيش: <span id="army-size">1</span> محارب</div>
-    </div>
-
-    <button class="gopass-btn" onclick="toggleShop()">🛒 المتجر و GoPass</button>
-
-    <div id="shop" class="shop-panel">
-        <span class="close-btn" onclick="toggleShop()">✖ إغلاق</span>
-        <h2>🏛️ متجر العرين و GoPass</h2>
-        <div class="item-card">
-            <span>🛡️ درع ذهبي (NFT) - حماية +50</span>
-            <button onclick="buyItem(100)">شراء (100 $LAST)</button>
-        </div>
-        <div class="item-card" style="background: linear-gradient(90deg, #4b0082, #000);">
-            <span>💎 ممر الملوك (GoPass) - جوايز مضاعفة</span>
-            <button onclick="buyItem(500)">تفعيل (500 $LAST)</button>
-        </div>
+    <div class="ui-overlay">
+        <div class="hunt-timer">⏳ يبدأ موسم الصيد خلال: <span id="timer">05:00</span></div>
     </div>
 
     <div id="game-container"></div>
 
     <script>
-        let balance = 150.00; 
         const config = {
             type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
             parent: 'game-container',
@@ -50,39 +29,45 @@
         };
 
         const game = new Phaser.Game(config);
-        let player, target, light, trees;
+        let player, target, light, oasis, trees;
 
         function preload() {
-            this.load.image('lion', 'https://cdn-icons-png.flaticon.com/512/616/616412.png'); // أيقونة مؤقتة للأسد
+            // استدعاء الأصول (تأكد من الروابط لاحقاً)
+            this.load.image('lion', 'https://cdn-icons-png.flaticon.com/512/616/616412.png');
             this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/490/490391.png');
         }
 
         function create() {
             this.physics.world.setBounds(0, 0, 4000, 4000);
-            this.lights.enable().setAmbientColor(0x333333);
+            this.lights.enable().setAmbientColor(0x222222);
 
-            // توزيع الغابة
-            for (let i = 0; i < 60; i++) {
+            // 1. إنشاء "نبع القوة" (البحيرة)
+            oasis = this.add.circle(2000, 2000, 350, 0x00aaff, 0.4);
+            oasis.setPipeline('Light2D');
+            this.add.text(2000, 2000, "💧 نبع القوة\n(منطقة التواصل)", { align: 'center', fill: '#fff', fontSize: '20px' }).setOrigin(0.5);
+
+            // 2. إنشاء الغابة الكثيفة
+            trees = this.physics.add.staticGroup();
+            for (let i = 0; i < 180; i++) {
                 let x = Phaser.Math.Between(0, 4000);
                 let y = Phaser.Math.Between(0, 4000);
-                let tree = this.add.image(x, y, 'tree').setScale(0.4).setOrigin(0.5, 1).setPipeline('Light2D');
-                tree.setDepth(y);
+                // منع الشجر من الظهور داخل البحيرة
+                if (Phaser.Math.Distance.Between(x, y, 2000, 2000) > 400) {
+                    let tree = trees.create(x, y, 'tree').setScale(0.5).setOrigin(0.5, 1).setPipeline('Light2D');
+                    tree.setDepth(y);
+                }
             }
 
-            // منطقة البورصة (المنطقة الذهبية)
-            this.add.circle(2000, 2000, 300, 0xffd700, 0.2).setPipeline('Light2D');
-            this.add.text(2000, 1800, "🏛️ مركز التداول العالمي", { color: '#ffd700', fontSize: '24px' }).setOrigin(0.5);
+            // 3. اللاعب (الأسد الملك)
+            player = this.physics.add.sprite(2000, 2200, 'lion').setScale(0.25).setPipeline('Light2D');
+            player.setCollideWorldBounds(true);
 
-            // اللاعب
-            player = this.physics.add.sprite(2000, 2200, 'lion').setScale(0.2).setPipeline('Light2D');
-            player.setDepth(2200);
+            // 4. الإضاءة السينمائية
+            light = this.lights.addLight(0, 0, 450).setIntensity(2);
 
-            // إضاءة الأسد (كشاف الاستكشاف)
-            light = this.lights.addLight(0, 0, 500).setIntensity(2).setColor(0xffffff);
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            this.cameras.main.startFollow(player, true, 0.08, 0.08);
-            this.cameras.main.setZoom(1);
-
+            // تحريك الأسد
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
                 this.physics.moveToObject(player, target, 250);
@@ -94,26 +79,18 @@
             light.y = player.y;
             player.setDepth(player.y);
 
+            // التحقق من وجود الأسد في البحيرة (لزيادة الطاقة)
+            let distToWater = Phaser.Math.Distance.Between(player.x, player.y, 2000, 2000);
+            if (distToWater < 350) {
+                player.setTint(0x00ffff); // تلوين الأسد باللون المائي
+            } else {
+                player.clearTint();
+            }
+
             if (target) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
                 if (dist < 10) { player.body.reset(target.x, target.y); target = null; }
                 player.setFlipX(player.body.velocity.x < 0);
-            }
-        }
-
-        // وظائف المتجر
-        function toggleShop() {
-            const shop = document.getElementById('shop');
-            shop.style.display = (shop.style.display === 'block') ? 'none' : 'block';
-        }
-
-        function buyItem(price) {
-            if (balance >= price) {
-                balance -= price;
-                document.getElementById('balance').innerText = balance.toFixed(2);
-                alert("تمت العملية بنجاح! زادت هيبة ملكك. 🦁✨");
-            } else {
-                alert("رصيدك غير كافٍ.. اذهب للتعدين أو الاستثمار!");
             }
         }
     </script>
