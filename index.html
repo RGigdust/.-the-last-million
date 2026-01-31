@@ -17,91 +17,88 @@
         };
 
         const game = new Phaser.Game(config);
-        let player, target, coins, scoreText, upgradeZone;
+        let player, enemy, target, coins, scoreText;
         let score = 0;
 
-        // --- 1. مرحلة التجهيز (الصور) ---
         function preload() {
             this.load.image('grass', 'https://labs.phaser.io/assets/textures/grass.png');
             this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png');
             this.load.image('building', 'https://labs.phaser.io/assets/sprites/fuji.png');
             this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png');
+            this.load.image('enemy', 'https://labs.phaser.io/assets/sprites/phaser-dude.png');
         }
 
-        // --- 2. مرحلة التأسيس (البناء) ---
         function create() {
-            // حدود العالم
             this.physics.world.setBounds(0, 0, 3000, 3000);
             this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
 
-            // إضافة المبنى الرئيسي
+            // المقر الملكي
             this.add.image(1500, 1200, 'building').setScale(1);
             this.add.text(1500, 1050, '🏛️ المقر الملكي لـ $LAST', { fontSize: '32px', fill: '#ffd700' }).setOrigin(0.5);
 
-            // --- نظام العملات ---
+            // الذهب
             coins = this.physics.add.group();
             for (let i = 0; i < 40; i++) {
                 let x = Phaser.Math.Between(200, 2800);
                 let y = Phaser.Math.Between(200, 2800);
-                let coin = coins.create(x, y, 'coin').setScale(0.6).setTint(0xffd700);
+                coins.create(x, y, 'coin').setScale(0.6).setTint(0xffd700);
             }
 
-            // --- منطقة التطوير (الدوامة السحرية) ---
-            upgradeZone = this.add.circle(1500, 1800, 150, 0x00ffff, 0.2);
-            this.physics.add.existing(upgradeZone, true);
-            this.add.text(1500, 1800, '🌀 منطقة القوة\n(50 ذهبة)', { align: 'center', fill: '#00ffff' }).setOrigin(0.5);
-
-            // --- الأسد الملك ---
+            // الأسد الملك
             player = this.physics.add.sprite(1500, 1500, 'lion').setScale(1.2);
             player.setCollideWorldBounds(true);
             this.cameras.main.startFollow(player, true, 0.08, 0.08);
 
-            // --- عداد الذهب ---
+            // --- العدو (الضبع) ---
+            enemy = this.physics.add.sprite(2000, 2000, 'enemy').setScale(1.5).setTint(0xff0000);
+            enemy.setCollideWorldBounds(true);
+
+            // ذكاء اصطناعي بسيط: العدو يطارد الأسد كل ثانيتين
+            this.time.addEvent({
+                delay: 2000,
+                callback: () => {
+                    this.physics.moveToObject(enemy, player, 160); // سرعة متوسطة للمطاردة
+                },
+                loop: true
+            });
+
+            // عداد الذهب
             scoreText = this.add.text(20, 20, 'Gold $LAST: 0', { 
                 fontSize: '28px', fill: '#fff', backgroundColor: '#000000aa', padding: 10 
             }).setScrollFactor(0);
 
-            // --- التفاعلات (جمع الذهب) ---
+            // اصطدام الذهب
             this.physics.add.overlap(player, coins, (p, coin) => {
                 coin.destroy();
                 score += 10;
                 scoreText.setText('Gold $LAST: ' + score);
-                this.cameras.main.shake(50, 0.003);
             }, null, this);
 
-            // --- التفاعل مع منطقة التطوير ---
-            this.physics.add.overlap(player, upgradeZone, () => {
-                if (score >= 50) {
-                    score -= 50;
-                    scoreText.setText('Gold $LAST: ' + score);
-                    player.setScale(player.scale + 0.2); // تكبير الحجم
-                    player.setTint(Phaser.Display.Color.RandomRGB().color); // تغيير اللون كتمويه للقوة
-                    alert("⚠️ لقد زادت قوة الأسد الملك!");
-                    // نبعد الأسد شوية عن المنطقة عشان ما يسحبش الـ 50 اللي بعدها فوراً
-                    player.y += 200; 
-                    target = null;
-                }
+            // --- اصطدام العدو (الخطر) ---
+            this.physics.add.overlap(player, enemy, () => {
+                score = Math.max(0, score - 20); // خسارة ذهب
+                scoreText.setText('Gold $LAST: ' + score);
+                player.setPosition(1500, 1500); // العودة للمركز
+                target = null;
+                this.cameras.main.shake(500, 0.02);
+                alert("⚠️ هجوم! الضبع سرق منك 20 ذهبة!");
             }, null, this);
 
-            // التحكم باللمس
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 300 + (score * 0.1)); // السرعة تزيد مع الذهب!
+                this.physics.moveToObject(player, target, 300);
             });
         }
 
-        // --- 3. مرحلة التحديث (الحركة) ---
         function update() {
             if (target && player.body) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
-                if (dist < 10) { 
-                    player.body.reset(player.x, player.y); 
-                    target = null; 
-                }
+                if (dist < 10) { player.body.reset(player.x, player.y); target = null; }
                 player.setFlipX(player.body.velocity.x < 0);
             }
+            // لف وجه العدو ناحية الأسد
+            enemy.setFlipX(enemy.body.velocity.x < 0);
         }
     </script>
 </body>
 </html>
-
