@@ -1,117 +1,98 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million - Forest</title>
+    <title>The Last Million | العرين</title>
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #050a05; font-family: 'Arial', sans-serif; color: white; }
-        
-        /* عالم الغابة */
-        #game-stage {
-            width: 100vw; height: 100vh;
-            position: relative; overflow: hidden;
-            background: radial-gradient(circle, #1a2a1a 0%, #050a05 100%);
-        }
-
-        #world {
-            position: absolute;
-            width: 3000px; height: 3000px;
-            background-image: url('https://www.transparenttextures.com/patterns/dark-matter.png'); /* نسيج للأرضية */
-            top: -1000px; left: -1000px;
-            transition: transform 0.6s cubic-bezier(0.15, 0.88, 0.3, 1);
-            will-change: transform;
-        }
-
-        /* الأسد الثابت في المركز */
-        #player-fixed {
-            position: fixed;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 100;
+        body { margin: 0; background: #0b0e14; overflow: hidden; }
+        #game-container { width: 100vw; height: 100vh; }
+        .ui-overlay {
+            position: fixed; top: 20px; left: 0; right: 0;
+            display: flex; justify-content: center; z-index: 100;
             pointer-events: none;
         }
-
-        .lion-img { width: 120px; filter: drop-shadow(0 0 15px gold); transition: 0.2s; }
-
-        /* العملات الذهبية في الغابة */
-        .coin {
-            position: absolute;
-            width: 30px; height: 30px;
-            background: gold; border-radius: 50%;
-            box-shadow: 0 0 20px gold;
-            display: flex; align-items: center; justify-content: center;
-            color: black; font-weight: bold; font-size: 10px;
-            animation: pulse 1s infinite;
+        .stat-card {
+            background: rgba(0,0,0,0.8); border: 1px solid #d4af37;
+            padding: 10px 25px; border-radius: 30px; color: #d4af37;
+            font-family: 'Arial', sans-serif; font-weight: bold; font-size: 20px;
         }
-
-        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
-
-        /* واجهة المستخدم (UI) */
-        .ui-top { position: fixed; top: 20px; width: 100%; text-align: center; z-index: 200; pointer-events: none; }
-        .balance-box { background: rgba(0,0,0,0.8); padding: 10px 30px; border: 1px solid gold; border-radius: 50px; display: inline-block; }
-        .balance-box b { color: gold; font-size: 24px; }
     </style>
 </head>
 <body>
 
-    <div class="ui-top">
-        <div class="balance-box">رصيد السيادة: <b id="bal">0.000</b> $LAST</div>
+    <div class="ui-overlay">
+        <div class="stat-card">السيادة: <span id="score">0.000</span> $LAST</div>
     </div>
 
-    <div id="game-stage" onclick="moveWorld(event)">
-        <div id="world">
-            <div class="coin" style="top: 1200px; left: 1400px;">$</div>
-            <div class="coin" style="top: 1500px; left: 1100px;">$</div>
-            <div class="coin" style="top: 900px; left: 1600px;">$</div>
-            <div class="coin" style="top: 1700px; left: 1500px;">$</div>
-        </div>
-    </div>
-
-    <div id="player-fixed">
-        <img src="wingedlionpng.png" class="lion-img" id="lion-sprite" onerror="this.src='https://cdn-icons-png.flaticon.com/512/616/616412.png'">
-    </div>
+    <div id="game-container"></div>
 
     <script>
-        let balance = 0;
-        let worldX = -1000;
-        let worldY = -1000;
-        const world = document.getElementById('world');
-        const lion = document.getElementById('lion-sprite');
+        // إعدادات المحرك الاحترافي (زي ألعاب Moltbook)
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            parent: 'game-container',
+            transparent: true,
+            physics: { default: 'arcade' },
+            scene: { preload: preload, create: create, update: update }
+        };
 
-        function moveWorld(e) {
-            // حساب المسافة بين مركز الشاشة ومكان اللمس
-            const centerX = window.innerWidth / 2;
-            const centerY = window.innerHeight / 2;
-            
-            const diffX = centerX - e.clientX;
-            const diffY = centerY - e.clientY;
+        const game = new Phaser.Game(config);
+        let player;
+        let cursors;
+        let score = 0;
+        let scoreText;
 
-            // تحديث مكان العالم
-            worldX += diffX;
-            worldY += diffY;
+        function preload() {
+            // تحميل صورة الأسد من الرابط بتاعك
+            this.load.image('lion', 'wingedlionpng.png');
+            // تحميل خلفية الغابة
+            this.load.image('forest', 'https://www.transparenttextures.com/patterns/dark-matter.png');
+        }
 
-            // تطبيق الحركة (الكاميرا تلحق اللمس)
-            world.style.transform = `translate(${worldX}px, ${worldY}px)`;
+        function create() {
+            // إضافة خلفية قابلة للتكرار (الغابة)
+            this.bg = this.add.tileSprite(0, 0, 4000, 4000, 'forest').setOrigin(0, 0);
 
-            // لف وجه الأسد حسب الاتجاه
-            if (diffX < 0) lion.style.transform = "scaleX(1)";
-            else lion.style.transform = "scaleX(-1)";
+            // إنشاء الأسد في المركز
+            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion');
+            player.setScale(0.3); // تصغير الحجم ليناسب الغابة
+            player.setCollideWorldBounds(true);
 
-            // تأثير الضغطة (Zoom out خفيف للأسد)
-            lion.style.transform += " scale(0.9)";
-            setTimeout(() => {
-                lion.style.transform = lion.style.transform.replace(" scale(0.9)", "");
-            }, 100);
+            // الكاميرا تلحق الأسد
+            this.cameras.main.startFollow(player, true, 0.1, 0.1);
 
-            // زيادة الرصيد (محاكاة الصيد)
-            balance += 0.001;
-            document.getElementById('bal').innerText = balance.toFixed(3);
+            // التحكم باللمس
+            this.input.on('pointerdown', (pointer) => {
+                // تحريك الأسد لمكان اللمس بنعومة
+                this.physics.moveToObject(player, pointer, 300);
+                
+                // اهتزاز التليجرام
+                if (window.Telegram?.WebApp) {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
+                }
+            });
 
-            // اهتزاز التليجرام
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            scoreText = document.getElementById('score');
+        }
+
+        function update() {
+            // جعل الخلفية تتحرك مع الأسد لإعطاء إحساس بالعمق
+            this.bg.x = player.x - 2000;
+            this.bg.y = player.y - 2000;
+
+            // تحديث الرصيد عند الحركة (محاكاة الصيد)
+            if (player.body.speed > 0) {
+                score += 0.0001;
+                scoreText.innerText = score.toFixed(4);
             }
+
+            // لف وجه الأسد حسب اتجاه الحركة
+            if (player.body.velocity.x > 0) player.setFlipX(false);
+            else if (player.body.velocity.x < 0) player.setFlipX(true);
         }
     </script>
 </body>
