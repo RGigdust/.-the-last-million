@@ -3,105 +3,103 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>The Lion's Forest</title>
     <style>
-        :root { --gold: #d4af37; --bg: #0b0e14; --card: #1c212a; }
-        body { margin: 0; background: var(--bg); color: white; font-family: 'Arial', sans-serif; overflow: hidden; user-select: none; }
+        body { margin: 0; overflow: hidden; background: #050a05; font-family: sans-serif; }
         
-        /* شريط علوي احترافي */
-        .header { display: flex; justify-content: space-around; padding: 20px; background: rgba(0,0,0,0.3); border-bottom: 1px solid rgba(212,175,55,0.2); }
-        .stat-box { text-align: center; }
-        .stat-box small { color: #888; font-size: 10px; display: block; }
-        .stat-box b { color: var(--gold); font-size: 20px; text-shadow: 0 0 10px rgba(212,175,55,0.5); }
+        /* الغابة اللانهائية */
+        #forest {
+            width: 2000px; height: 2000px;
+            background: 
+                radial-gradient(circle, rgba(20,40,20,0.8) 0%, #050a05 100%),
+                url('https://www.transparenttextures.com/patterns/dark-matter.png'); /* هنستبدلها بصورة غابة مهيبة لاحقاً */
+            position: relative; transition: 0.1s linear;
+        }
 
-        /* منطقة النقر (الغابة) */
-        .click-area { height: 60vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        .lion-btn { width: 250px; height: 250px; border-radius: 50%; background: radial-gradient(circle, #2a303c, #0b0e14); border: 5px solid var(--gold); box-shadow: 0 0 50px rgba(212,175,55,0.2); display: flex; align-items: center; justify-content: center; transition: transform 0.05s; cursor: pointer; }
-        .lion-btn:active { transform: scale(0.92); }
-        .lion-btn img { width: 80%; pointer-events: none; }
+        /* الأسد (الأفاتار) */
+        #lion {
+            width: 80px; height: 80px;
+            position: absolute;
+            transition: all 0.5s ease-out; /* سرعة الحركة */
+            z-index: 10; transform-origin: center;
+        }
 
-        /* شريط الطاقة (Energy) */
-        .energy-bar { width: 80%; height: 10px; background: #222; border-radius: 10px; margin-top: 30px; border: 1px solid #333; overflow: hidden; }
-        #energy-fill { width: 100%; height: 100%; background: linear-gradient(90deg, var(--gold), #fff); transition: width 0.2s; }
+        /* العملات (الفرائس) */
+        .coin {
+            width: 30px; height: 30px;
+            background: gold; border-radius: 50%;
+            position: absolute; box-shadow: 0 0 15px gold;
+            animation: pulse 1s infinite;
+        }
 
-        /* الأرقام الطائرة (+0.001) */
-        .floating-text { position: absolute; color: white; font-weight: bold; font-size: 24px; pointer-events: none; animation: floatUp 0.7s ease-out forwards; z-index: 1000; }
-        @keyframes floatUp { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-150px); } }
+        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
 
-        /* التنقل السفلي */
-        .nav { position: fixed; bottom: 0; width: 100%; display: flex; background: var(--card); padding: 15px 0; border-top: 1px solid var(--gold); }
-        .nav-item { flex: 1; text-align: center; color: #666; font-size: 12px; }
-        .nav-item.active { color: var(--gold); }
+        /* الواجهة */
+        .ui { position: fixed; top: 10px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
+        .score-card { background: rgba(0,0,0,0.7); padding: 10px 20px; border: 1px solid gold; border-radius: 20px; color: gold; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="stat-box"><small>عملاتك</small><b id="balance">0.000</b></div>
-        <div class="stat-box"><small>الرتبة</small><b>شبل</b></div>
+    <div class="ui">
+        <div class="score-card">الرصيد: <span id="balance">0.000</span> $LAST</div>
     </div>
 
-    <div class="click-area" id="click-zone">
-        <div class="lion-btn" onclick="handleTap(event)">
-            <img src="wingedlionpng.png" alt="Lion">
-        </div>
-        <div class="energy-bar"><div id="energy-fill"></div></div>
-        <p><span id="energy-num">1000</span>/1000 ⚡</p>
+    <div id="forest" onclick="moveLion(event)">
+        <img src="wingedlionpng.png" id="lion" alt="Lion">
+        
+        <div class="coin" style="top: 200px; left: 300px;"></div>
+        <div class="coin" style="top: 500px; left: 800px;"></div>
+        <div class="coin" style="top: 100px; left: 1200px;"></div>
     </div>
-
-    <nav class="nav">
-        <div class="nav-item active">🏰 العرش</div>
-        <div class="nav-item">🛒 المتجر</div>
-        <div class="nav-item">🎓 الأكاديمية</div>
-        <div class="nav-item">💬 الديوانية</div>
-    </nav>
 
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.expand();
+        const lion = document.getElementById('lion');
+        const forest = document.getElementById('forest');
+        let balance = 0;
 
-        let bal = 0;
-        let energy = 1000;
+        function moveLion(e) {
+            // إحداثيات اللمس
+            const x = e.clientX + window.scrollX;
+            const y = e.clientY + window.scrollY;
 
-        function handleTap(e) {
-            if (energy <= 0) return;
+            // تحريك الأسد للمكان الملموس
+            lion.style.left = (x - 40) + 'px';
+            lion.style.top = (y - 40) + 'px';
 
-            // 1. زيادة الرصيد
-            bal += 0.001;
-            energy -= 2;
-            updateUI();
+            // تدوير الأسد في اتجاه الحركة (بسيطة)
+            const currentX = parseInt(lion.style.left);
+            if (x > currentX) lion.style.transform = "scaleX(1)";
+            else lion.style.transform = "scaleX(-1)";
 
-            // 2. اهتزاز الموبايل (Haptic)
-            tg.HapticFeedback.impactOccurred('medium');
-
-            // 3. الرقم الطائر (+0.001)
-            createFloatingText(e.clientX, e.clientY);
-        }
-
-        function createFloatingText(x, y) {
-            const text = document.createElement('div');
-            text.className = 'floating-text';
-            text.innerText = '+0.001';
-            text.style.left = `${x}px`;
-            text.style.top = `${y}px`;
-            document.getElementById('click-zone').appendChild(text);
-            setTimeout(() => text.remove(), 700);
-        }
-
-        function updateUI() {
-            document.getElementById('balance').innerText = bal.toFixed(3);
-            document.getElementById('energy-num').innerText = energy;
-            document.getElementById('energy-fill').style.width = (energy / 10) + "%";
-        }
-
-        // شحن الطاقة تلقائياً
-        setInterval(() => {
-            if (energy < 1000) {
-                energy += 1;
-                updateUI();
+            // اهتزاز خفيف عند المشي
+            if (window.Telegram && window.Telegram.WebApp) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
             }
-        }, 1500);
+
+            // فحص التصادم مع العملات (بعد وصول الأسد)
+            setTimeout(checkCollection, 500);
+        }
+
+        function checkCollection() {
+            const coins = document.querySelectorAll('.coin');
+            const lionRect = lion.getBoundingClientRect();
+
+            coins.forEach(coin => {
+                const coinRect = coin.getBoundingClientRect();
+                // لو الأسد لمس العملة
+                if (!(lionRect.right < coinRect.left || lionRect.left > coinRect.right || 
+                      lionRect.bottom < coinRect.top || lionRect.top > coinRect.bottom)) {
+                    coin.remove(); // اختفاء العملة
+                    balance += 1.0;
+                    document.getElementById('balance').innerText = balance.toFixed(3);
+                    // اهتزاز قوي عند الصيد
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                    }
+                }
+            });
+        }
     </script>
 </body>
 </html>
