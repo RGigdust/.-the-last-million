@@ -1,114 +1,24 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>The Last Million | Royal Connection</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #020502; overflow: hidden; touch-action: none; }
-        
-        /* واجهة الأزرار العلوية - تم إصلاحها للبورصة والمتجر */
-        .royal-ui {
-            position: fixed;
-            top: 15px;
-            width: 100%;
-            display: flex;
-            justify-content: space-around;
-            z-index: 9999; /* التأكد من أنها فوق كل شيء */
-            pointer-events: none;
-        }
+// داخل دالة preload
+this.load.image('building_market', 'https://cdn-icons-png.flaticon.com/512/4341/4341044.png'); // مبنى البورصة
+this.load.image('building_shop', 'https://cdn-icons-png.flaticon.com/512/1162/1162464.png');   // مبنى المتجر
+this.load.image('ground', 'https://img.freepik.com/free-vector/green-grass-texture-background_1308-54338.jpg'); // أرضية عشب
 
-        .btn-icon {
-            background: linear-gradient(135deg, #ffd700, #b8860b);
-            border: 2px solid #fff;
-            border-radius: 12px;
-            padding: 8px 15px;
-            color: #000;
-            font-weight: bold;
-            font-size: 14px;
-            pointer-events: auto; /* السماح بالضغط */
-            cursor: pointer;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
+// داخل دالة create
+// 1. إضافة الأرضية بدل السواد
+let background = this.add.tileSprite(2000, 2000, 4000, 4000, 'ground').setAlpha(0.3);
 
-        .btn-icon:active { transform: scale(0.9); }
-    </style>
-</head>
-<body>
+// 2. إضافة المباني كمناطق تفاعلية
+let marketHouse = this.physics.add.staticSprite(1800, 1800, 'building_market').setScale(0.6);
+let shopHouse = this.physics.add.staticSprite(2200, 1800, 'building_shop').setScale(0.6);
 
-    <div class="royal-ui">
-        <div class="btn-icon" onclick="openMarket()">📈 البورصة</div>
-        <div class="btn-icon" onclick="openShop()">💎 المتجر</div>
-        <div class="btn-icon" onclick="openClan()">🏰 العشيرة</div>
-    </div>
+// 3. إضافة نصوص فوق المباني
+this.add.text(1800, 1700, "🏛️ البورصة العالمية", { fill: '#ffd700', fontSize: '20px', backgroundColor: '#000' }).setOrigin(0.5);
+this.add.text(2200, 1700, "💰 المتجر الملكي", { fill: '#ffd700', fontSize: '20px', backgroundColor: '#000' }).setOrigin(0.5);
 
-    <div id="game-container"></div>
-
-    <script>
-        // تفعيل تليجرام
-        const tg = window.Telegram.WebApp;
-        tg.expand(); // فتح التطبيق بكامل الشاشة
-        
-        const config = {
-            type: Phaser.AUTO,
-            width: window.innerWidth,
-            height: window.innerHeight,
-            parent: 'game-container',
-            physics: { default: 'arcade' },
-            scene: { preload: preload, create: create, update: update }
-        };
-
-        const game = new Phaser.Game(config);
-        let player, target;
-
-        function preload() {
-            this.load.image('lion', 'https://cdn-icons-png.flaticon.com/512/616/616412.png');
-            this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/490/490391.png');
-        }
-
-        function create() {
-            this.physics.world.setBounds(0, 0, 4000, 4000);
-            
-            // إضافة البحيرة
-            this.add.circle(2000, 2000, 400, 0x00ffff, 0.2);
-            
-            // توزيع الأشجار
-            for(let i=0; i<150; i++) {
-                let x = Phaser.Math.Between(0, 4000);
-                let y = Phaser.Math.Between(0, 4000);
-                if(Phaser.Math.Distance.Between(x,y, 2000, 2000) > 400) {
-                    this.add.image(x, y, 'tree').setScale(0.5).setOrigin(0.5, 1);
-                }
-            }
-
-            // سحب اسم المستخدم من تليجرام!
-            let userName = tg.initDataUnsafe?.user?.first_name || "الأسد الملك";
-            
-            player = this.physics.add.sprite(2000, 2200, 'lion').setScale(0.25);
-            this.add.text(2000, 2150, userName, { fontSize: '18px', fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
-
-            this.cameras.main.startFollow(player);
-            
-            this.input.on('pointerdown', (pointer) => {
-                target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 250);
-            });
-        }
-
-        function update() {
-            if (target) {
-                let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
-                if (dist < 10) { player.body.reset(target.x, target.y); target = null; }
-                player.setFlipX(player.body.velocity.x < 0);
-            }
-        }
-
-        // دوال الأزرار
-        function openMarket() { tg.showAlert("جاري فتح البورصة الحية.. الأسعار في صعود! 🚀"); }
-        function openShop() { tg.showAlert("مرحباً بك في المتجر الملكي! 💎"); }
-        function openClan() { tg.showAlert("جاري استدعاء جيش العرين.. ⚔️"); }
-    </script>
-</body>
-</html>
+// 4. نظام "الاقتراب للدخول"
+this.physics.add.overlap(player, marketHouse, () => {
+    // تظهر رسالة "اضغط للدخول للبورصة"
+    if (Phaser.Input.Keyboard.JustDown(this.input.activePointer)) {
+        openMarket(); // الدالة اللي برمجناها
+    }
+});
