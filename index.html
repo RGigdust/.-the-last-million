@@ -3,21 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Last Million | Evolution</title>
+    <title>The Last Million | Royal Rise</title>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #020502; overflow: hidden; font-family: 'Cairo', sans-serif; }
-        .ui-top { position: fixed; top: 20px; width: 100%; display: flex; justify-content: center; gap: 10px; z-index: 1000; pointer-events: none; }
-        .stat-box { background: rgba(0,0,0,0.8); padding: 8px 20px; border-radius: 20px; border: 1px solid gold; color: gold; font-weight: bold; }
-        .rank-tag { color: #fff; font-size: 0.8rem; display: block; text-align: center; }
+        .ui-header { position: fixed; top: 15px; width: 100%; display: flex; flex-direction: column; align-items: center; z-index: 1000; pointer-events: none; }
+        .glass-box { background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px); padding: 5px 20px; border-radius: 15px; border: 1px solid gold; color: gold; text-align: center; box-shadow: 0 0 15px rgba(212, 175, 55, 0.2); }
+        .rank-text { font-size: 0.7rem; color: #fff; text-transform: uppercase; letter-spacing: 1px; }
+        .balance-text { font-size: 1.4rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
-    <div class="ui-top">
-        <div class="stat-box">
-            <span class="rank-tag" id="rank-name">الرتبة: شبل</span>
-            السيادة: <span id="balance">0.000</span> $LAST
+    <div class="ui-header">
+        <div class="glass-box">
+            <div id="rank-label" class="rank-text">شبل ناشئ</div>
+            <div class="balance-text"><span id="score-display">0.000</span> <small style="font-size: 10px;">$LAST</small></div>
         </div>
     </div>
 
@@ -25,46 +26,48 @@
 
     <script>
         const config = {
-            type: Phaser.AUTO,
-            width: window.innerWidth, height: window.innerHeight,
+            type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight,
             parent: 'game-container', transparent: true,
             physics: { default: 'arcade' },
             scene: { preload: preload, create: create, update: update }
         };
 
         const game = new Phaser.Game(config);
-        let player, target, score = 0, otherCubs = [];
+        let player, target, score, aura;
 
         function preload() {
             this.load.image('lion', 'wingedlionpng.png');
             this.load.image('tree', 'https://cdn-icons-png.flaticon.com/512/490/490391.png');
+            this.load.image('aura', 'https://cdn-icons-png.flaticon.com/512/8636/8636034.png'); // صورة للهالة
         }
 
         function create() {
-            this.physics.world.setBounds(0, 0, 4000, 4000);
+            // استعادة البيانات المحفوظة
+            score = parseFloat(localStorage.getItem('lion_score')) || 0;
+            
+            this.physics.world.setBounds(0, 0, 5000, 5000);
 
             // إضافة الأشجار
-            for (let i = 0; i < 50; i++) {
-                this.add.image(Phaser.Math.Between(0, 4000), Phaser.Math.Between(0, 4000), 'tree').setScale(0.2).setAlpha(0.3);
+            for (let i = 0; i < 80; i++) {
+                this.add.image(Phaser.Math.Between(0, 5000), Phaser.Math.Between(0, 5000), 'tree').setScale(0.3).setAlpha(0.2);
             }
 
-            // إنشاء اللاعب (البداية كـ "شبل" صغير)
-            player = this.physics.add.sprite(2000, 2000, 'lion').setScale(0.2); // مقاس صغير في البداية
+            // إنشاء الهالة (مخفية في البداية)
+            aura = this.add.image(0, 0, 'aura').setScale(0.5).setAlpha(0).setTint(0xffd700);
+
+            // إنشاء اللاعب بحجمه المحفوظ
+            let startScale = 0.2 + (score * 0.005);
+            if (startScale > 0.6) startScale = 0.6; 
+
+            player = this.physics.add.sprite(2500, 2500, 'lion').setScale(startScale);
             player.setDepth(100);
 
-            // إضافة "أشبال" أخرى بتتحرك عشوائياً (محاكاة للاعبين)
-            for (let i = 0; i < 5; i++) {
-                let cub = this.physics.add.sprite(Phaser.Math.Between(1800, 2200), Phaser.Math.Between(1800, 2200), 'lion');
-                cub.setScale(0.15).setAlpha(0.5).setTint(0xaaaaaa);
-                cub.nameTag = this.add.text(cub.x, cub.y - 30, "لاعب " + Phaser.Math.Between(100, 999), { fontSize: '12px', fill: '#fff' }).setOrigin(0.5);
-                otherCubs.push(cub);
-            }
-
-            this.cameras.main.startFollow(player, true, 0.08, 0.08);
+            this.cameras.main.startFollow(player, true, 0.05, 0.05);
+            updateCameraZoom(this, score);
 
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 250);
+                this.physics.moveToObject(player, target, 250 + (score * 2)); // تزيد السرعة قليلاً مع النمو
             });
         }
 
@@ -74,33 +77,44 @@
                 if (dist < 10) { player.body.reset(target.x, target.y); target = null; }
                 player.setFlipX(player.body.velocity.x < 0);
                 
-                // زيادة الرصيد والنمو
+                // تحديث الرصيد والحفظ
                 score += 0.001;
-                document.getElementById('balance').innerText = score.toFixed(3);
+                updateUI();
                 
-                // نظام النمو: كل ما زاد السكور، حجم الأسد بيكبر
-                if (score > 1 && player.scale < 0.4) {
-                    player.setScale(player.scale + 0.0001);
-                    updateRank(score);
+                // النمو التدريجي
+                if (player.scale < 0.6) {
+                    player.setScale(player.scale + 0.00001);
+                    updateCameraZoom(this, score);
+                }
+
+                // إظهار الهالة لو أصبح "ملك"
+                if (score > 10) {
+                    aura.setPosition(player.x, player.y + 20);
+                    aura.setAlpha(0.3);
+                    aura.setDepth(99);
+                    aura.rotation += 0.02;
                 }
             }
-
-            // تحريك الأشبال الأخرى بشكل عشوائي "لايف"
-            otherCubs.forEach(cub => {
-                if (Phaser.Math.Between(0, 100) > 98) {
-                    this.physics.moveTo(cub, Phaser.Math.Between(0, 4000), Phaser.Math.Between(0, 4000), 100);
-                }
-                cub.nameTag.x = cub.x;
-                cub.nameTag.y = cub.y - 30;
-                cub.setFlipX(cub.body.velocity.x < 0);
-            });
+            
+            // حفظ البيانات كل 100 فريم تحسينًا للأداء
+            if (Phaser.Math.Between(0, 100) > 98) {
+                localStorage.setItem('lion_score', score);
+            }
         }
 
-        function updateRank(s) {
-            let rankElement = document.getElementById('rank-name');
-            if (s > 10) rankElement.innerText = "الرتبة: أسد ملك";
-            else if (s > 5) rankElement.innerText = "الرتبة: سبع";
-            else rankElement.innerText = "الرتبة: شبل";
+        function updateUI() {
+            document.getElementById('score-display').innerText = score.toFixed(3);
+            let label = document.getElementById('rank-label');
+            if (score > 50) label.innerText = "الإمبراطور الأخير";
+            else if (score > 10) label.innerText = "الأسد الملك";
+            else if (score > 2) label.innerText = "السبع الفتي";
+            else label.innerText = "شبل ناشئ";
+        }
+
+        function updateCameraZoom(scene, s) {
+            let zoomLevel = 1.2 - (s * 0.01);
+            if (zoomLevel < 0.7) zoomLevel = 0.7;
+            scene.cameras.main.setZoom(zoomLevel);
         }
     </script>
 </body>
