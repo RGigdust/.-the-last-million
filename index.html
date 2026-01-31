@@ -1,12 +1,16 @@
-
 <!DOCTYPE html>
 <html>
 <head>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>body { margin: 0; background: #001a00; overflow: hidden; }</style>
+    <style>
+        body { margin: 0; background: #000; overflow: hidden; }
+        #loading-text { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: Arial; }
+    </style>
 </head>
 <body>
+    <div id="loading-text">جاري استدعاء العرين...</div>
     <script>
         const config = {
             type: Phaser.AUTO,
@@ -20,41 +24,31 @@
         let player, target;
 
         function preload() {
-            // محاولة تحميل الصور بالروابط الأصلية مع معالجة المسافات
-            const path = 'assets/';
-            this.load.image('grass', path + 'images%20(38).jpeg');
-            this.load.image('market', path + 'Images%20(1).png');
-            this.load.image('clan', path + 'images%20(41).jpeg');
-            this.load.image('shop', path + 'images%20(39).jpeg');
-            this.load.image('lion', path + 'images%20(42).jpeg');
+            // مش هنحمل صور دلوقتي عشان نتخطى مشكلة الشاشة السودة
         }
 
         function create() {
-            // رسم أرضية خضراء احتياطية لو صورة العشب محملتش
+            document.getElementById('loading-text').style.display = 'none';
+
+            // رسم أرضية خضراء (بدل الصورة)
             this.add.rectangle(1500, 1500, 3000, 3000, 0x0b3d0b);
-            this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
 
-            // إضافة المباني
-            let m = this.add.image(1200, 1200, 'market').setScale(0.5);
-            let c = this.add.image(1800, 1200, 'clan').setScale(0.5);
-            let s = this.add.image(1500, 1800, 'shop').setScale(0.5);
+            // رسم "مربعات" بتمثل المباني بتاعتك
+            // مربع البورصة (أصفر)
+            this.add.rectangle(1200, 1200, 100, 100, 0xffd700);
+            this.add.text(1200, 1130, '🏛️ البورصة', { fill: '#fff' }).setOrigin(0.5);
 
-            // إضافة نصوص فوق أماكن المباني عشان لو الصور مظهرتش تعرف مكانها
-            this.add.text(1200, 1100, '🏛️ البورصة', { fill: '#ffd700' }).setOrigin(0.5);
-            this.add.text(1800, 1100, '🏰 العشيرة', { fill: '#ffd700' }).setOrigin(0.5);
-            this.add.text(1500, 1700, '💰 المتجر', { fill: '#ffd700' }).setOrigin(0.5);
+            // مربع المتجر (أزرق)
+            this.add.rectangle(1500, 1800, 100, 100, 0x0000ff);
+            this.add.text(1500, 1730, '💰 المتجر', { fill: '#fff' }).setOrigin(0.5);
 
-            // اللاعب (الأسد)
-            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(0.3);
+            // الأسد (دايرة حمراء مؤقتاً)
+            player = this.add.circle(window.innerWidth/2, window.innerHeight/2, 20, 0xff0000);
+            this.physics.world.enable(player);
             
-            // لو صورة الأسد محملتش، ارسم دايرة ذهبية مكانه
-            if (!player.texture.key || player.texture.key === '__MISSING') {
-                let circle = this.add.circle(0, 0, 30, 0xffd700);
-                player = this.add.container(window.innerWidth/2, window.innerHeight/2, [circle]);
-                this.physics.world.enable(player);
-            }
-
             this.cameras.main.startFollow(player);
+
+            // الحركة عند اللمس
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
                 this.physics.moveToObject(player, target, 250);
