@@ -6,11 +6,9 @@
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
     <style>
         body { margin: 0; background: #000; overflow: hidden; }
-        #loading-text { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: gold; font-family: Arial; }
     </style>
 </head>
 <body>
-    <div id="loading-text">جاري استدعاء العرين...</div>
     <script>
         const config = {
             type: Phaser.AUTO,
@@ -23,42 +21,60 @@
         const game = new Phaser.Game(config);
         let player, target;
 
+        // --- 1. مرحلة استدعاء الصور ---
         function preload() {
-            // مش هنحمل صور دلوقتي عشان نتخطى مشكلة الشاشة السودة
+            const baseUrl = 'assets/';
+            // نستخدم الرموز البرمجية للمسافات %20 عشان الصور تفتح غصب عنها
+            this.load.image('grass', baseUrl + 'images%20(38).jpeg');
+            this.load.image('market', baseUrl + 'Images%20(1).png');
+            this.load.image('clan', baseUrl + 'images%20(41).jpeg');
+            this.load.image('shop', baseUrl + 'images%20(39).jpeg');
+            this.load.image('lion', baseUrl + 'images%20(42).jpeg');
         }
 
+        // --- 2. مرحلة بناء العالم (دي اللي كنت بتسأل عليها) ---
         function create() {
-            document.getElementById('loading-text').style.display = 'none';
+            // إضافة حدود للعالم (3000 بكسل)
+            this.physics.world.setBounds(0, 0, 3000, 3000);
 
-            // رسم أرضية خضراء (بدل الصورة)
-            this.add.rectangle(1500, 1500, 3000, 3000, 0x0b3d0b);
+            // إضافة العشب وتكراره لملء الأرضية
+            this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
 
-            // رسم "مربعات" بتمثل المباني بتاعتك
-            // مربع البورصة (أصفر)
-            this.add.rectangle(1200, 1200, 100, 100, 0xffd700);
-            this.add.text(1200, 1130, '🏛️ البورصة', { fill: '#fff' }).setOrigin(0.5);
+            // وضع المباني في أماكنها الاستراتيجية
+            this.add.image(1200, 1200, 'market').setScale(0.5); // البورصة
+            this.add.image(1800, 1200, 'clan').setScale(0.6);   // القلعة
+            this.add.image(1500, 1800, 'shop').setScale(0.5);   // المتجر
 
-            // مربع المتجر (أزرق)
-            this.add.rectangle(1500, 1800, 100, 100, 0x0000ff);
-            this.add.text(1500, 1730, '💰 المتجر', { fill: '#fff' }).setOrigin(0.5);
+            // إضافة نصوص إرشادية فوق المباني
+            this.add.text(1200, 1100, '🏛️ البورصة', { fontSize: '20px', fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
+            this.add.text(1800, 1100, '🏰 العشيرة', { fontSize: '20px', fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
+            this.add.text(1500, 1700, '💰 المتجر', { fontSize: '20px', fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
 
-            // الأسد (دايرة حمراء مؤقتاً)
-            player = this.add.circle(window.innerWidth/2, window.innerHeight/2, 20, 0xff0000);
-            this.physics.world.enable(player);
-            
-            this.cameras.main.startFollow(player);
+            // إضافة الأسد (اللاعب)
+            player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.3);
+            player.setCollideWorldBounds(true);
 
-            // الحركة عند اللمس
+            // الكاميرا تتبع الأسد بنعومة
+            this.cameras.main.startFollow(player, true, 0.05, 0.05);
+
+            // التحكم باللمس
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
                 this.physics.moveToObject(player, target, 250);
             });
         }
 
+        // --- 3. مرحلة التحديث المستمر ---
         function update() {
             if (target && player.body) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
-                if (dist < 10) { player.body.reset(player.x, player.y); target = null; }
+                // إيقاف الأسد عند وصوله للهدف
+                if (dist < 10) {
+                    player.body.reset(player.x, player.y);
+                    target = null;
+                }
+                // لف وجه الأسد لليمين أو اليسار حسب اتجاه الحركة
+                player.setFlipX(player.body.velocity.x < 0);
             }
         }
     </script>
