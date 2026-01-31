@@ -1,35 +1,72 @@
-function preload() {
-    // المسار المباشر لملفاتك
-    const baseUrl = 'https://rgigdust.github.io/.-the-last-million/assets/';
-    
-    // ناديت الصور بأساميها اللي انت بعتها بالظبط (بالقوس والمسافة)
-    this.load.image('grass', baseUrl + 'images%20(38).jpeg');
-    this.load.image('market', baseUrl + 'Images%20(1).png'); 
-    this.load.image('clan', baseUrl + 'images%20(41).jpeg');
-    this.load.image('shop', baseUrl + 'images%20(39).jpeg');
-    this.load.image('lion', baseUrl + 'images%20(42).jpeg');
-}
 
-function create() {
-    // خلفية بسيطة للتأكد أن المحرك يعمل
-    this.add.rectangle(1500, 1500, 3000, 3000, 0x004400);
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+    <style>body { margin: 0; background: #001a00; overflow: hidden; }</style>
+</head>
+<body>
+    <script>
+        const config = {
+            type: Phaser.AUTO,
+            width: window.innerWidth,
+            height: window.innerHeight,
+            physics: { default: 'arcade' },
+            scene: { preload: preload, create: create, update: update }
+        };
 
-    // إضافة العشب
-    this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
+        const game = new Phaser.Game(config);
+        let player, target;
 
-    // وضع المباني (لو الصور محملتش هيظهر مكانها مربعات خضراء مؤقتاً)
-    let b1 = this.physics.add.staticSprite(1200, 1200, 'market').setScale(0.5);
-    let b2 = this.physics.add.staticSprite(1800, 1200, 'clan').setScale(0.5);
-    let b3 = this.physics.add.staticSprite(1500, 1800, 'shop').setScale(0.5);
+        function preload() {
+            // محاولة تحميل الصور بالروابط الأصلية مع معالجة المسافات
+            const path = 'assets/';
+            this.load.image('grass', path + 'images%20(38).jpeg');
+            this.load.image('market', path + 'Images%20(1).png');
+            this.load.image('clan', path + 'images%20(41).jpeg');
+            this.load.image('shop', path + 'images%20(39).jpeg');
+            this.load.image('lion', path + 'images%20(42).jpeg');
+        }
 
-    // الأسد
-    player = this.physics.add.sprite(1500, 1500, 'lion').setScale(0.3);
-    
-    this.cameras.main.startFollow(player);
-    
-    this.input.on('pointerdown', (pointer) => {
-        let touchX = pointer.x + this.cameras.main.scrollX;
-        let touchY = pointer.y + this.cameras.main.scrollY;
-        this.physics.moveTo(player, touchX, touchY, 250);
-    });
-}
+        function create() {
+            // رسم أرضية خضراء احتياطية لو صورة العشب محملتش
+            this.add.rectangle(1500, 1500, 3000, 3000, 0x0b3d0b);
+            this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
+
+            // إضافة المباني
+            let m = this.add.image(1200, 1200, 'market').setScale(0.5);
+            let c = this.add.image(1800, 1200, 'clan').setScale(0.5);
+            let s = this.add.image(1500, 1800, 'shop').setScale(0.5);
+
+            // إضافة نصوص فوق أماكن المباني عشان لو الصور مظهرتش تعرف مكانها
+            this.add.text(1200, 1100, '🏛️ البورصة', { fill: '#ffd700' }).setOrigin(0.5);
+            this.add.text(1800, 1100, '🏰 العشيرة', { fill: '#ffd700' }).setOrigin(0.5);
+            this.add.text(1500, 1700, '💰 المتجر', { fill: '#ffd700' }).setOrigin(0.5);
+
+            // اللاعب (الأسد)
+            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(0.3);
+            
+            // لو صورة الأسد محملتش، ارسم دايرة ذهبية مكانه
+            if (!player.texture.key || player.texture.key === '__MISSING') {
+                let circle = this.add.circle(0, 0, 30, 0xffd700);
+                player = this.add.container(window.innerWidth/2, window.innerHeight/2, [circle]);
+                this.physics.world.enable(player);
+            }
+
+            this.cameras.main.startFollow(player);
+            this.input.on('pointerdown', (pointer) => {
+                target = pointer.positionToCamera(this.cameras.main);
+                this.physics.moveToObject(player, target, 250);
+            });
+        }
+
+        function update() {
+            if (target && player.body) {
+                let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
+                if (dist < 10) { player.body.reset(player.x, player.y); target = null; }
+            }
+        }
+    </script>
+</body>
+</html>
