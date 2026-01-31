@@ -1,105 +1,68 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>The Lion's Forest</title>
-    <style>
-        body { margin: 0; overflow: hidden; background: #050a05; font-family: sans-serif; }
-        
-        /* الغابة اللانهائية */
-        #forest {
-            width: 2000px; height: 2000px;
-            background: 
-                radial-gradient(circle, rgba(20,40,20,0.8) 0%, #050a05 100%),
-                url('https://www.transparenttextures.com/patterns/dark-matter.png'); /* هنستبدلها بصورة غابة مهيبة لاحقاً */
-            position: relative; transition: 0.1s linear;
-        }
+<style>
+    /* الغابة أصبحت عالم كامل */
+    #world {
+        width: 3000px; height: 3000px;
+        background-image: url('https://img.freepik.com/free-vector/forest-landscape-with-trees-rocks-night_107791-16322.jpg'); /* مثال لغابة داكنة */
+        background-size: 800px;
+        position: absolute;
+        transition: 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+    }
 
-        /* الأسد (الأفاتار) */
-        #lion {
-            width: 80px; height: 80px;
-            position: absolute;
-            transition: all 0.5s ease-out; /* سرعة الحركة */
-            z-index: 10; transform-origin: center;
-        }
+    #player-container {
+        position: fixed;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 100;
+    }
 
-        /* العملات (الفرائس) */
-        .coin {
-            width: 30px; height: 30px;
-            background: gold; border-radius: 50%;
-            position: absolute; box-shadow: 0 0 15px gold;
-            animation: pulse 1s infinite;
-        }
+    .lion-sprite {
+        width: 100px;
+        filter: drop-shadow(0 0 15px gold);
+        transition: 0.3s;
+    }
 
-        @keyframes pulse { 0% {transform: scale(1);} 50% {transform: scale(1.2);} 100% {transform: scale(1);} }
+    /* تأثيرات الأناقة */
+    .glow-coin {
+        position: absolute;
+        width: 25px; height: 25px;
+        background: radial-gradient(circle, gold, #d4af37);
+        border-radius: 50%;
+        box-shadow: 0 0 20px gold;
+    }
+</style>
 
-        /* الواجهة */
-        .ui { position: fixed; top: 10px; width: 100%; display: flex; justify-content: space-around; z-index: 100; pointer-events: none; }
-        .score-card { background: rgba(0,0,0,0.7); padding: 10px 20px; border: 1px solid gold; border-radius: 20px; color: gold; }
-    </style>
-</head>
-<body>
-
-    <div class="ui">
-        <div class="score-card">الرصيد: <span id="balance">0.000</span> $LAST</div>
+<div id="game-container" style="width: 100vw; height: 100vh; overflow: hidden; position: relative;">
+    <div id="world">
+        <div class="glow-coin" style="top: 400px; left: 600px;"></div>
+        <div class="glow-coin" style="top: 1200px; left: 300px;"></div>
+        <div class="glow-coin" style="top: 800px; left: 1500px;"></div>
     </div>
 
-    <div id="forest" onclick="moveLion(event)">
-        <img src="wingedlionpng.png" id="lion" alt="Lion">
-        
-        <div class="coin" style="top: 200px; left: 300px;"></div>
-        <div class="coin" style="top: 500px; left: 800px;"></div>
-        <div class="coin" style="top: 100px; left: 1200px;"></div>
+    <div id="player-container">
+        <img src="wingedlionpng.png" class="lion-sprite" id="lion-player">
     </div>
+</div>
 
-    <script>
-        const lion = document.getElementById('lion');
-        const forest = document.getElementById('forest');
-        let balance = 0;
+<script>
+    const world = document.getElementById('world');
+    const lion = document.getElementById('lion-player');
 
-        function moveLion(e) {
-            // إحداثيات اللمس
-            const x = e.clientX + window.scrollX;
-            const y = e.clientY + window.scrollY;
+    document.getElementById('game-container').addEventListener('click', (e) => {
+        // حساب الحركة "عكس" اتجاه اللمس عشان العالم هو اللي يتحرك
+        const moveX = (window.innerWidth / 2) - e.clientX;
+        const moveY = (window.innerHeight / 2) - e.clientY;
 
-            // تحريك الأسد للمكان الملموس
-            lion.style.left = (x - 40) + 'px';
-            lion.style.top = (y - 40) + 'px';
+        // تحريك العالم (الغابة)
+        const currentTransform = new WebKitCSSMatrix(window.getComputedStyle(world).transform);
+        world.style.transform = `translate(${currentTransform.m41 + moveX}px, ${currentTransform.m42 + moveY}px)`;
 
-            // تدوير الأسد في اتجاه الحركة (بسيطة)
-            const currentX = parseInt(lion.style.left);
-            if (x > currentX) lion.style.transform = "scaleX(1)";
-            else lion.style.transform = "scaleX(-1)";
+        // لف وجه الأسد
+        if (moveX < 0) lion.style.transform = "scaleX(1)";
+        else lion.style.transform = "scaleX(-1)";
 
-            // اهتزاز خفيف عند المشي
-            if (window.Telegram && window.Telegram.WebApp) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            }
-
-            // فحص التصادم مع العملات (بعد وصول الأسد)
-            setTimeout(checkCollection, 500);
+        // اهتزاز "بريميوم"
+        if (window.Telegram?.WebApp) {
+            window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
         }
-
-        function checkCollection() {
-            const coins = document.querySelectorAll('.coin');
-            const lionRect = lion.getBoundingClientRect();
-
-            coins.forEach(coin => {
-                const coinRect = coin.getBoundingClientRect();
-                // لو الأسد لمس العملة
-                if (!(lionRect.right < coinRect.left || lionRect.left > coinRect.right || 
-                      lionRect.bottom < coinRect.top || lionRect.top > coinRect.bottom)) {
-                    coin.remove(); // اختفاء العملة
-                    balance += 1.0;
-                    document.getElementById('balance').innerText = balance.toFixed(3);
-                    // اهتزاز قوي عند الصيد
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                    }
-                }
-            });
-        }
-    </script>
-</body>
-</html>
+    });
+</script>
