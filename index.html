@@ -17,38 +17,74 @@
         };
 
         const game = new Phaser.Game(config);
-        let player, target;
+        let player, target, coins, scoreText;
+        let score = 0;
 
         function preload() {
-            // روابط صور عالمية جاهزة (عشان نكسر نحس الصور اللي على الموبايل)
+            // روابط الصور اللي اشتغلت معانا
             this.load.image('grass', 'https://labs.phaser.io/assets/textures/grass.png');
-            this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png'); // صورة وحش فخمة مؤقتاً
-            this.load.image('building', 'https://labs.phaser.io/assets/sprites/fuji.png'); // مبنى ياباني فخم كبورصة
+            this.load.image('lion', 'https://labs.phaser.io/assets/sprites/beast.png');
+            this.load.image('building', 'https://labs.phaser.io/assets/sprites/fuji.png');
+            this.load.image('coin', 'https://labs.phaser.io/assets/sprites/apple.png'); // التفاحة كعملة مؤقتة
         }
 
         function create() {
-            // فرش الأرضية
+            // عالم واسع (3000x3000)
+            this.physics.world.setBounds(0, 0, 3000, 3000);
             this.add.tileSprite(1500, 1500, 3000, 3000, 'grass');
 
-            // المباني (البورصة والقلعة)
-            let b1 = this.add.image(1200, 1200, 'building').setScale(0.8);
-            this.add.text(1200, 1100, '🏛️ البورصة الملكية', { fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
+            // إضافة المباني
+            this.add.image(1200, 1200, 'building').setScale(0.8);
+            this.add.text(1200, 1100, '🏛️ البورصة', { fill: '#ffd700', backgroundColor: '#000' }).setOrigin(0.5);
 
-            // الأسد (اللاعب)
-            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(1.5);
+            // --- نظام العملات الذهبية ---
+            coins = this.physics.add.group();
+            for (let i = 0; i < 30; i++) {
+                let x = Phaser.Math.Between(100, 2900);
+                let y = Phaser.Math.Between(100, 2900);
+                let coin = coins.create(x, y, 'coin').setScale(0.5);
+                coin.setTint(0xffd700); // تلوينها بالذهبي
+            }
+
+            // --- اللاعب (الأسد) ---
+            player = this.physics.add.sprite(window.innerWidth/2, window.innerHeight/2, 'lion').setScale(1.2);
+            player.setCollideWorldBounds(true);
             
+            // الكاميرا تتبع الأسد
             this.cameras.main.startFollow(player, true, 0.05, 0.05);
 
+            // --- عداد الذهب (UI) ---
+            scoreText = this.add.text(20, 20, 'Gold $LAST: 0', { 
+                fontSize: '24px', 
+                fill: '#fff', 
+                backgroundColor: '#00000088',
+                padding: { x: 10, y: 5 }
+            }).setScrollFactor(0); // يثبت في مكانه ولا يتحرك مع الكاميرا
+
+            // --- التفاعل بين الأسد والذهب ---
+            this.physics.add.overlap(player, coins, (p, coin) => {
+                coin.destroy(); // اختفاء العملة
+                score += 10;    // زيادة السكور
+                scoreText.setText('Gold $LAST: ' + score);
+                
+                // تأثير بسيط عند الجمع (هزة كاميرا)
+                this.cameras.main.shake(100, 0.005);
+            }, null, this);
+
+            // التحكم باللمس
             this.input.on('pointerdown', (pointer) => {
                 target = pointer.positionToCamera(this.cameras.main);
-                this.physics.moveToObject(player, target, 300);
+                this.physics.moveToObject(player, target, 350);
             });
         }
 
         function update() {
             if (target && player.body) {
                 let dist = Phaser.Math.Distance.Between(player.x, player.y, target.x, target.y);
-                if (dist < 10) { player.body.reset(player.x, player.y); target = null; }
+                if (dist < 10) { 
+                    player.body.reset(player.x, player.y); 
+                    target = null; 
+                }
                 player.setFlipX(player.body.velocity.x < 0);
             }
         }
