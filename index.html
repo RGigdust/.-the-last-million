@@ -1,97 +1,89 @@
-<!DOCTYPE html>
-<html lang="ar">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>$LAST Empire - The Sovereign Jungle</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
-    <style>
-        body { margin: 0; background: #010a01; overflow: hidden; font-family: sans-serif; }
-    </style>
-</head>
-<body>
+<style>
+    /* ... (نفس الستايل القديم) ... */
+    
+    /* تعديل: الشبل لازم يكون حركته Linear عشان يستجيب بسرعة للسحب */
+    #lion-player {
+        position: absolute; width: 80px; height: 80px; z-index: 100;
+        transition: transform 0.1s; /* نعومة في الدوران فقط */
+        pointer-events: none; /* عشان الصباع ميغطيش عليه */
+        will-change: left, top;
+    }
+    
+    /* إضافة منطقة تحكم شفافة تغطي الشاشة كلها */
+    #touch-layer {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 999; touch-action: none; /* يمنع السكرول عشان اللعبة تكون سلسة */
+    }
+</style>
+
+<div id="touch-layer"></div>
+
 <script>
-const tg = window.Telegram.WebApp;
-tg.expand();
+    // ... (إعدادات Firebase زي ما هي) ...
 
-class FinalEmpire extends Phaser.Scene {
-    constructor() { super('FinalEmpire'); }
+    const lion = document.getElementById('lion-player');
+    const touchLayer = document.getElementById('touch-layer');
+    
+    // متغيرات الحركة
+    let currentX = window.innerWidth / 2;
+    let currentY = window.innerHeight / 2;
+    let targetX = currentX;
+    let targetY = currentY;
+    let isMoving = false;
 
-    create() {
-        const w = 3000, h = 3000;
-        this.physics.world.setBounds(0, 0, w, h);
+    // 1. بداية اللمس أو السحب
+    touchLayer.addEventListener('touchstart', handleInput, {passive: false});
+    touchLayer.addEventListener('touchmove', (e) => {
+        e.preventDefault(); // منع سحب الصفحة
+        handleInput(e);
+    }, {passive: false});
+    
+    touchLayer.addEventListener('touchend', () => { isMoving = false; });
 
-        // 1. أرضية الغابة والبيئة
-        this.add.rectangle(w/2, h/2, w, h, 0x064e3b);
-        for(let i=0; i<300; i++) this.add.text(Phaser.Math.Between(0, w), Phaser.Math.Between(0, h), '🌿', {alpha:0.2});
+    // للكمبيوتر (الماوس)
+    touchLayer.addEventListener('mousedown', (e) => { isMoving = true; handleMouse(e); });
+    touchLayer.addEventListener('mousemove', (e) => { if(isMoving) handleMouse(e); });
+    touchLayer.addEventListener('mouseup', () => { isMoving = false; });
 
-        // 2. شجرة الحكمة (نقطة التجمع)
-        this.add.text(w/2, h/2, '🌳', {fontSize: '150px'}).setOrigin(0.5);
-        this.add.text(w/2, h/2 + 80, 'عرين الأسود - نقطة التجمع', {backgroundColor:'#000', padding:5}).setOrigin(0.5);
-
-        // 3. الأسد القائد
-        this.player = this.add.container(w/2, h/2 + 200);
-        let pIcon = this.add.text(0, 0, '🦁', {fontSize: '60px'}).setOrigin(0.5);
-        let pName = this.add.text(0, 50, tg.initDataUnsafe.user?.first_name || "الأسد القائد", {fontSize: '16px', backgroundColor: '#000'}).setOrigin(0.5);
-        this.player.add([pIcon, pName]);
-        this.physics.add.existing(this.player);
-
-        // 4. الكاميرا والبوصلة
-        this.cameras.main.startFollow(this.player, true, 0.1, 0.1);
-        this.cameras.main.setBounds(0, 0, w, h);
-        this.compass = this.add.text(this.scale.width/2, 100, '⬆️ فريسة نادرة قريبة', {fill:'#0ff', backgroundColor:'#000'}).setOrigin(0.5).setScrollFactor(0).setVisible(false);
-
-        // 5. الكنز (الفريسة)
-        this.treasure = this.add.text(0, 0, '💎', {fontSize:'50px'}).setOrigin(0.5).setVisible(false);
-        this.physics.add.existing(this.treasure);
-
-        // 6. فلتر الليل والنهار (Market Filter)
-        this.nightFilter = this.add.rectangle(w/2, h/2, w, h, 0x011627, 0).setDepth(1000).setScrollFactor(1);
-
-        // التفاعلات
-        this.time.addEvent({ delay: 30000, callback: this.spawnTreasure, loop: true });
-        this.physics.add.overlap(this.player, this.treasure, this.collect, null, this);
-        
-        // محاكاة تقلب السوق (تجربة)
-        this.time.addEvent({ delay: 15000, callback: () => {
-            let isNight = this.nightFilter.alpha === 0;
-            this.nightFilter.setAlpha(isNight ? 0.6 : 0);
-            tg.HapticFeedback.impactOccurred('medium');
-        }, loop: true });
+    function handleInput(e) {
+        isMoving = true;
+        const touch = e.touches[0];
+        targetX = touch.clientX - 40; // -40 عشان السنتر
+        targetY = touch.clientY - 40;
     }
 
-    spawnTreasure() {
-        const x = Phaser.Math.Between(100, 2900);
-        const y = Phaser.Math.Between(100, 2900);
-        this.treasure.setPosition(x, y).setVisible(true);
-        this.compass.setVisible(true);
+    function handleMouse(e) {
+        targetX = e.clientX - 40;
+        targetY = e.clientY - 40;
     }
 
-    collect() {
-        this.treasure.setVisible(false);
-        this.compass.setVisible(false);
-        tg.showAlert("تم صيد الفريسة! +500 نقطة سيادة 🥩");
-    }
-
-    update() {
-        if (this.input.activePointer.isDown) {
-            let target = this.cameras.main.getWorldPoint(this.input.x, this.input.y);
-            this.physics.moveToObject(this.player, target, 300);
-            this.player.setScale(this.player.x < target.x ? 1 : -1, 1);
+    // 2. محرك اللعبة (Game Loop) - ده اللي بيعمل "نعومة الفيديو"
+    function gameLoop() {
+        if (!isMoving) {
+            // لو مش بيتحرك، خلي الشبل يتنفس
+            lion.classList.add('breathing');
         } else {
-            this.player.body.setVelocity(0);
-        }
+            lion.classList.remove('breathing');
+            
+            // معادلة "التتبع الناعم" (Lerp)
+            // الشبل مش بينط للصباع، هو بيجري وراه بسرعة
+            currentX += (targetX - currentX) * 0.15; 
+            currentY += (targetY - currentY) * 0.15;
 
-        if(this.treasure.visible) {
-            let angle = Phaser.Math.Angle.Between(this.player.x, this.player.y, this.treasure.x, this.treasure.y);
-            this.compass.setRotation(angle + Math.PI/2);
+            lion.style.left = currentX + 'px';
+            lion.style.top = currentY + 'px';
+            
+            // دوران الشبل ناحية الحركة (اختياري لواقعية أكتر)
+            const diffX = targetX - currentX;
+            if(diffX > 5) lion.style.transform = "scaleX(-1)"; // وش لليمين
+            else if(diffX < -5) lion.style.transform = "scaleX(1)"; // وش لليسار
         }
+        
+        requestAnimationFrame(gameLoop);
     }
-}
 
-const config = { type: Phaser.AUTO, width: window.innerWidth, height: window.innerHeight, scene: FinalEmpire, physics: { default: 'arcade' } };
-new Phaser.Game(config);
+    // تشغيل المحرك
+    gameLoop();
+
+    // ... (باقي كود الـ Gems والـ Firebase) ...
 </script>
-</body>
-</html>
